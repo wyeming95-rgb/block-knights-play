@@ -147,27 +147,29 @@
   };
 
   // ---- chapter 1. board rows: '#' block, 'x' corruption, '.' empty
+  // bg = painted backdrop (art/ui/bg-*.webp), also the terrain band on the world map;
+  // tint = optional wash over the battle scene. Forest 1–3, ruins 4–6, snow 7–9, summit 10.
   const LEVELS = [
-    { id: 1, name: 'Ashen Gate', type: 'battle', waves: ['slime'], stars: { hp: 0.6, turns: 12 },
+    { id: 1, name: 'Ashwood Gate', type: 'battle', bg: 'forest', waves: ['slime'], stars: { hp: 0.6, turns: 12 },
       tip: 'Drag pieces onto the board. Fill a row or column to attack!' },
-    { id: 2, name: 'Dusk Road', type: 'battle', waves: ['bat', 'slime'], stars: { hp: 0.6, turns: 22 },
+    { id: 2, name: 'Dusk Thicket', type: 'battle', bg: 'forest', waves: ['bat', 'slime'], stars: { hp: 0.6, turns: 22 },
       tip: 'Clear on back-to-back turns to build a combo.' },
-    { id: 3, name: 'Goblin Ford', type: 'battle', waves: ['goblin'], stars: { hp: 0.5, turns: 18 },
+    { id: 3, name: 'Goblin Ford', type: 'battle', bg: 'forest', waves: ['goblin'], stars: { hp: 0.5, turns: 18 },
       tip: 'A full skill meter glows. Tap the hero to use it.' },
-    { id: 4, name: 'Rune Seal I', type: 'puzzle', goal: { kind: 'lines', target: 8, turns: 22 }, stars: { t2: 20, t3: 16 },
+    { id: 4, name: 'Rune Seal I', type: 'puzzle', bg: 'ruins', goal: { kind: 'lines', target: 8, turns: 22 }, stars: { t2: 20, t3: 16 },
       board: ['........', '........', '........', '........', '........', '##.##.##', '#.####.#', '###..###'],
       tip: 'Puzzle: clear 8 lines before you run out of turns.' },
-    { id: 5, name: 'Ember Hollow', type: 'battle', waves: ['wisp', 'wisp'], stars: { hp: 0.5, turns: 26 },
+    { id: 5, name: 'Ember Cloister', type: 'battle', bg: 'ruins', waves: ['wisp', 'wisp'], stars: { hp: 0.5, turns: 26 },
       tip: 'Water beats Fire. Element matchups matter.' },
-    { id: 6, name: 'Wolf Den', type: 'battle', waves: ['wolf', 'wolf'], stars: { hp: 0.4, turns: 30 } },
-    { id: 7, name: 'Mire Bridge', type: 'battle', waves: ['golem'], stars: { hp: 0.5, turns: 26 },
+    { id: 6, name: 'The Wayhouse', type: 'battle', bg: 'ruins', waves: ['wolf', 'wolf'], stars: { hp: 0.4, turns: 30 } },
+    { id: 7, name: 'Frozen Ferry', type: 'battle', bg: 'snow', waves: ['golem'], stars: { hp: 0.5, turns: 26 },
       tip: 'Golems hit hard but slowly. Save a shield for the big swing.' },
-    { id: 8, name: 'Rune Seal II', type: 'puzzle', goal: { kind: 'corruption', turns: 20 }, stars: { t2: 15, t3: 11 },
+    { id: 8, name: 'Rune Seal II', type: 'puzzle', bg: 'snow', goal: { kind: 'corruption', turns: 20 }, stars: { t2: 15, t3: 11 },
       board: ['........', '.x....x.', '...xx...', '........', '........', '..x..x..', '...xx...', '.x....x.'],
       tip: 'Puzzle: purify every corrupt cell. Clearing a line purifies corruption in it and next to it.' },
-    { id: 9, name: 'Ruined Keep', type: 'battle', waves: ['bat', 'revenant'], stars: { hp: 0.5, turns: 32 },
+    { id: 9, name: 'Cinder Pass', type: 'battle', bg: 'snow', waves: ['bat', 'revenant'], stars: { hp: 0.5, turns: 32 },
       board: ['........', '........', '........', '..x..x..', '........', '........', '........', '........'] },
-    { id: 10, name: 'Blight Heart', type: 'battle', boss: true, waves: ['wyrm'], stars: { hp: 0.4, turns: 40 },
+    { id: 10, name: 'Wyrm Summit', type: 'battle', boss: true, bg: 'snow', tint: 'rgba(90,10,24,0.42)', waves: ['wyrm'], stars: { hp: 0.4, turns: 40 },
       board: ['........', '........', '...xx...', '........', '........', '...xx...', '........', '........'],
       tip: 'BOSS: the Wyrm spreads corruption. Corrupt cells block pieces until a line clears through or beside them.' },
   ];

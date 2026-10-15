@@ -49,7 +49,7 @@ html, body {
 .screen[hidden] { display: none; }
 .screen.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .screen.dim, #screen-results { background: rgba(10, 6, 18, 0.72); }
-#screen-levels, #screen-gacha, #screen-team { background: rgba(14, 9, 22, 0.88); }
+#screen-gacha, #screen-team { background: rgba(14, 9, 22, 0.88); }
 
 /* ---- buttons */
 .btn {
@@ -131,14 +131,14 @@ html, body {
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fffaf2; }
 #screen-title .rune { color: #c9f3ff; }
 .menu { width: 100%; max-width: 270px; display: flex; flex-direction: column; gap: 10px; }
-/* soft glass buttons, title screen only (other screens keep the chunky game buttons) */
-#screen-title .btn {
+/* soft glass buttons on the title and the map (other screens keep the chunky game buttons) */
+#screen-title .btn, #screen-levels .btn, .story-skip {
   font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; font-weight: 600; letter-spacing: 1px;
   color: #fffaf2; background: rgba(36, 24, 60, 0.38); border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 14px; box-shadow: 0 6px 20px rgba(20, 10, 40, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: background 0.2s, transform 0.1s;
 }
-#screen-title .btn:active { transform: scale(0.98); box-shadow: 0 2px 10px rgba(20, 10, 40, 0.25); }
+#screen-title .btn:active, #screen-levels .btn:active { transform: scale(0.98); box-shadow: 0 2px 10px rgba(20, 10, 40, 0.25); }
 #screen-title .btn.primary {
   color: #3a2410; border-color: rgba(255, 244, 214, 0.9);
   background: linear-gradient(180deg, rgba(255, 238, 190, 0.92), rgba(240, 200, 120, 0.88));
@@ -172,26 +172,6 @@ html, body {
 .bar h2 { flex: 1; margin: 0; font-size: 19px; text-align: center; }
 .muted { color: var(--muted); }
 .hint { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
-
-/* ---- level select */
-.level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
-.level-tile {
-  position: relative; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto;
-  column-gap: 10px; align-items: center; text-align: left;
-  font-family: var(--font); color: var(--paper);
-  background: var(--panel); border: 2px solid var(--line); border-radius: 10px;
-  padding: 10px; cursor: pointer; min-height: 84px;
-}
-.level-tile .lv-num { grid-row: 1 / 4; font-size: 30px; font-weight: 900; color: var(--muted); }
-.level-tile .lv-name { font-weight: 800; font-size: 14px; }
-.level-tile .lv-kind { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-.level-tile .stars { color: var(--paper); font-size: 15px; }
-.level-tile.puzzle .lv-kind { color: #7fe6ff; }
-.level-tile.boss { border-color: #7a3a9a; background: #2a1438; grid-column: span 2; }
-.level-tile.boss .lv-kind { color: #d07cff; }
-.level-tile.next { border-color: var(--signal); box-shadow: 0 0 0 2px rgba(255, 211, 77, 0.3); }
-.level-tile.next .lv-num { color: var(--signal); }
-.level-tile.locked { opacity: 0.4; cursor: default; }
 
 /* ---- results */
 #screen-results { justify-content: center; }
@@ -271,3 +251,160 @@ html, body {
 #screen-pause { justify-content: center; }
 .pause { display: flex; flex-direction: column; gap: 10px; max-width: 280px; text-align: center; }
 .pause h2 { margin: 0 0 6px; }
+
+/* ---- world map: forest (bottom) -> ruins -> snow -> summit, one scrolling picture */
+#screen-levels.map-screen { padding: 0; gap: 0; background: #0d0a16; }
+.map-scroll { position: absolute; inset: 0; z-index: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.map-scroll::-webkit-scrollbar { display: none; }
+.map { position: relative; width: 390px; overflow: hidden; }
+/* upper bands fade their bottom edge over the band below */
+.map-bg { position: absolute; left: 0; width: 390px; background-size: cover; background-repeat: no-repeat;
+  filter: brightness(0.86) saturate(0.92); }
+.map-bg.forest { top: 1200px; height: 680px; background-image: url(art/ui/bg-forest.webp); background-position: 50% 100%; }
+.map-bg.ruins { top: 690px; height: 700px; background-image: url(art/ui/bg-ruins.webp); background-position: 50% 60%;
+  -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 100%); mask-image: linear-gradient(to bottom, #000 76%, transparent 100%); }
+.map-bg.snow { top: 0; height: 870px; background-image: url(art/ui/bg-snow.webp); background-position: 50% 100%;
+  -webkit-mask-image: linear-gradient(to bottom, #000 80%, transparent 100%); mask-image: linear-gradient(to bottom, #000 80%, transparent 100%); }
+/* the summit is the Wyrm's: a dark red wash over the aurora */
+.map-summit { position: absolute; left: 0; top: 0; width: 390px; height: 470px; pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 46%, rgba(170, 24, 40, 0.42), transparent 70%),
+    linear-gradient(to bottom, rgba(40, 6, 18, 0.78), rgba(60, 8, 24, 0.45) 55%, transparent); }
+
+.map-road { position: absolute; left: 0; top: 0; pointer-events: none; }
+.map-road path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.road-bed { stroke: rgba(18, 10, 30, 0.35); stroke-width: 16; }
+.road-dots { stroke: rgba(255, 250, 242, 0.5); stroke-width: 5; stroke-dasharray: 0 13; }
+.road-glow { stroke: rgba(255, 220, 150, 0.55); stroke-width: 9; }
+.road-done { stroke: #fff1c8; stroke-width: 6; stroke-dasharray: 0 13; animation: road-flow 1.6s linear infinite; }
+@keyframes road-flow { to { stroke-dashoffset: -26; } }
+
+.map-region { position: absolute; left: 50%; transform: translate(-50%, -50%); z-index: 1; white-space: nowrap; pointer-events: none;
+  padding: 5px 4px 5px 10px; border-radius: 12px; background: rgba(18, 11, 30, 0.42);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  font: 400 12px "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, serif; letter-spacing: 6px; padding-left: 6px;
+  text-transform: uppercase; color: rgba(255, 250, 242, 0.88); text-shadow: 0 1px 3px rgba(10, 5, 20, 0.9), 0 0 14px rgba(10, 5, 20, 0.8); }
+.map-region::before, .map-region::after { content: ""; display: inline-block; vertical-align: middle; width: 26px; height: 1px;
+  margin: 0 8px 2px; background: linear-gradient(90deg, transparent, rgba(255, 250, 242, 0.7), transparent); }
+
+.map-node { position: absolute; width: 0; height: 0; z-index: 2; }
+.node-btn {
+  position: absolute; left: -25px; top: -25px; width: 50px; height: 50px; padding: 0; border-radius: 50%; cursor: pointer;
+  font: 600 20px "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; color: #fffaf2;
+  background: radial-gradient(circle at 50% 32%, rgba(78, 58, 110, 0.95), rgba(26, 17, 42, 0.95));
+  border: 2px solid rgba(255, 244, 214, 0.8);
+  box-shadow: 0 4px 14px rgba(10, 5, 20, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 0.12s;
+}
+.node-btn:active { transform: scale(0.94); }
+.node-num { display: inline-block; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.map-node.puzzle .node-btn { border-radius: 12px; transform: rotate(45deg); border-color: rgba(159, 232, 255, 0.9);
+  background: radial-gradient(circle at 50% 32%, rgba(50, 82, 120, 0.95), rgba(18, 24, 44, 0.95)); }
+.map-node.puzzle .node-num { transform: rotate(-45deg); }
+.map-node.puzzle .node-btn:active { transform: rotate(45deg) scale(0.94); }
+.map-node.boss .node-btn { left: -33px; top: -33px; width: 66px; height: 66px; font-size: 26px; border-color: #ffb0a0;
+  background: radial-gradient(circle at 50% 32%, #8a1c30, #2a0812); box-shadow: 0 0 26px rgba(255, 60, 70, 0.5), 0 4px 14px rgba(10, 5, 20, 0.6); }
+.map-node.cleared .node-btn { border-color: #ffe9a0; }
+.map-node.current .node-btn { border-color: var(--signal); animation: node-pulse 2.2s ease-in-out infinite; }
+.map-node.locked .node-btn { cursor: default; color: rgba(255, 255, 255, 0.4); border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(20, 14, 32, 0.78); box-shadow: 0 2px 8px rgba(10, 5, 20, 0.4); }
+.map-node.boss.locked .node-btn { border-color: rgba(255, 160, 150, 0.4); background: rgba(50, 10, 22, 0.85); }
+.map-node.arrive .node-btn { animation: node-arrive 0.6s ease-out, node-pulse 2.2s ease-in-out 0.6s infinite; }
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(255, 211, 77, 0.22), 0 0 16px rgba(255, 211, 77, 0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 211, 77, 0.12), 0 0 26px rgba(255, 211, 77, 0.7); }
+}
+@keyframes node-arrive { 0% { scale: 1; } 40% { scale: 1.22; } 100% { scale: 1; } }
+
+.node-label { position: absolute; left: 32px; top: -21px; white-space: nowrap; pointer-events: none;
+  padding: 4px 10px 5px; border-radius: 10px; background: rgba(18, 11, 30, 0.5);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.map-node.label-left .node-label { left: auto; right: 32px; text-align: right; }
+.map-node.boss .node-label { left: 0; right: auto; top: 40px; transform: translateX(-50%); text-align: center; }
+.node-name { display: block; font: 600 14px "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; letter-spacing: 0.5px;
+  color: #fffaf2; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); }
+.node-stars { display: block; font-size: 12px; letter-spacing: 2px; color: #ffe9a0; }
+.map-node.locked .node-label { opacity: 0.6; }
+.map-node.locked .node-stars { color: rgba(255, 250, 242, 0.6); letter-spacing: 1px; font-size: 10px; text-transform: uppercase; }
+
+/* story replay: a small speech-bubble badge on nodes that have scenes */
+.node-story { position: absolute; left: -44px; top: -40px; width: 26px; height: 26px; padding: 5px; border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.6); background: rgba(36, 24, 60, 0.7); color: #fffaf2; cursor: pointer;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); box-shadow: 0 2px 8px rgba(10, 5, 20, 0.5); }
+.map-node.label-left .node-story { left: 18px; }
+.map-node.boss .node-story { left: 22px; top: -50px; }
+.node-story svg { display: block; width: 100%; height: 100%; }
+.node-story[hidden] { display: none; }
+.node-story.new { color: #3a2410; background: linear-gradient(180deg, #fff1c8, #f0c878); border-color: #fff8e0; }
+
+/* party marker: Calder's portrait chip on a pin, bobbing; hops while walking */
+.map-party { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 4; pointer-events: none; }
+.map-party .chip-wrap { position: absolute; left: -22px; top: -84px; width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid #fff1c8; background: #16101f;
+  box-shadow: 0 0 14px rgba(255, 236, 190, 0.7), 0 6px 12px rgba(10, 5, 20, 0.55); animation: party-bob 2.6s ease-in-out infinite; }
+.map-party .chip-wrap::after { content: ""; position: absolute; left: 50%; bottom: -11px; transform: translateX(-50%);
+  border: 6px solid transparent; border-top: 9px solid #fff1c8; border-bottom: 0; }
+.map-party .portrait { width: 100%; height: 100%; border-radius: 50%; object-position: 50% 8%; }
+.map-party.walking .chip-wrap { animation: party-walk 0.3s ease-in-out infinite alternate; }
+@keyframes party-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -4px; } }
+@keyframes party-walk { from { translate: 0 0; rotate: -5deg; } to { translate: 0 -7px; rotate: 5deg; } }
+
+.map-bar { position: absolute; z-index: 1; top: 0; left: 0; right: 0; padding: 14px 14px 30px;
+  background: linear-gradient(to bottom, rgba(14, 9, 24, 0.82), rgba(14, 9, 24, 0)); pointer-events: none; }
+.map-bar > * { pointer-events: auto; }
+.map-bar h2 { font: 400 20px "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, serif; letter-spacing: 3px;
+  text-transform: uppercase; color: #fffaf2; text-shadow: 0 1px 3px rgba(10, 5, 20, 0.8); }
+.map-bar h2 small { display: block; font: 600 10px var(--font); letter-spacing: 4px; color: rgba(255, 250, 242, 0.7); margin-bottom: 2px; }
+.map-bar .chip { background: rgba(36, 24, 60, 0.45); border-color: rgba(255, 255, 255, 0.28); color: #fffaf2;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.map-foot { position: absolute; z-index: 1; left: 0; right: 0; bottom: 0; padding: 30px 16px 16px; pointer-events: none;
+  background: linear-gradient(to top, rgba(14, 9, 24, 0.85), rgba(14, 9, 24, 0)); }
+.map-foot .btn { pointer-events: auto; min-height: 42px; padding: 8px 12px; font-size: 15px; }
+
+/* ---- story scenes: speech box + portrait cards over the map or battle */
+.story { position: absolute; inset: 0; z-index: 20; pointer-events: auto; cursor: pointer; opacity: 0; transition: opacity 0.25s; }
+.story[hidden] { display: none; }
+.story.open { opacity: 1; }
+.story-shade { position: absolute; inset: 0; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  background: linear-gradient(to bottom, rgba(10, 6, 18, 0.62), rgba(10, 6, 18, 0.68) 40%, rgba(10, 6, 18, 0.92)); }
+.story-title { position: absolute; top: 96px; left: 0; right: 0; text-align: center; pointer-events: none;
+  font: 400 22px "Cinzel", "Trajan Pro", "Palatino Linotype", Palatino, Georgia, serif; letter-spacing: 3px; color: #fffaf2;
+  text-shadow: 0 1px 3px rgba(10, 5, 20, 0.7), 0 0 22px rgba(255, 236, 214, 0.45);
+  opacity: 0; transform: translateY(8px); transition: opacity 0.7s, transform 0.7s; }
+.story-title.show { opacity: 1; transform: none; }
+.story-title::after { content: ""; display: block; width: 110px; height: 1px; margin: 10px auto 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 250, 242, 0.85), transparent); }
+.story-skip { position: absolute; z-index: 3; top: 16px; right: 14px; min-height: 34px; padding: 6px 14px; font-size: 14px; cursor: pointer; }
+.story-cast { position: absolute; z-index: 1; left: 0; right: 0; bottom: 166px; height: 260px; pointer-events: none; }
+.story-actor { position: absolute; bottom: 0; width: 164px; height: 246px; transform-origin: 50% 100%;
+  filter: brightness(0.42) saturate(0.6); transform: scale(0.92); transition: filter 0.25s, transform 0.25s; }
+.story-actor[hidden] { display: none; }
+.story-actor.left { left: 14px; }
+.story-actor.right { right: 14px; }
+.story-actor.speaking { filter: none; transform: none; z-index: 2; }
+.story-actor.bounce .card-frame { animation: speak-bounce 0.38s ease-out; }
+@keyframes speak-bounce { 0% { translate: 0 0; } 35% { translate: 0 -10px; } 70% { translate: 0 2px; } 100% { translate: 0 0; } }
+.card-frame { width: 100%; height: 100%; border-radius: 14px; overflow: hidden; background: #16101f;
+  border: 1px solid rgba(255, 250, 242, 0.55); box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(20, 12, 32, 0.35); }
+.card-frame .portrait { width: 100%; height: 100%; object-position: 50% 8%; }
+.card-frame .sil { display: block; width: 100%; height: 100%; }
+.story-box { position: absolute; z-index: 2; left: 12px; right: 12px; bottom: 24px; min-height: 154px; padding: 26px 20px 22px;
+  border-radius: 16px; background: rgba(24, 16, 38, 0.86); border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.story-name { position: absolute; top: -15px; left: 18px; padding: 5px 16px; border-radius: 10px;
+  font: 600 15px "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; letter-spacing: 1px; color: #3a2410;
+  background: linear-gradient(180deg, rgba(255, 238, 190, 0.97), rgba(240, 200, 120, 0.95)); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4); }
+.story-name[hidden] { display: none; }
+.story-box.right .story-name { left: auto; right: 18px; }
+.story-text { margin: 0; font: 17px/1.5 "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; color: #fffaf2; }
+.story-text .rest { visibility: hidden; }
+.story-box.narration .story-text { font-style: italic; color: rgba(232, 222, 250, 0.92); text-align: center; }
+.story-next { position: absolute; right: 16px; bottom: 6px; font-size: 16px; color: #ffe9b0; opacity: 0; transition: opacity 0.2s; }
+.story-box.done .story-next { opacity: 1; animation: next-bob 1s ease-in-out infinite; }
+@keyframes next-bob { 50% { translate: 0 3px; } }
+@media (prefers-reduced-motion: reduce) {
+  .road-done, .map-party .chip-wrap, .map-node.current .node-btn, .story-box.done .story-next { animation: none; }
+  .story-actor.bounce .card-frame { animation: none; }
+}

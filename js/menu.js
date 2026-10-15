@@ -1,14 +1,14 @@
 'use strict';
 /**
- * HTML menu screens over the canvas: title, level select, results, summon (gacha),
- * team select and pause. Only one screen is visible at a time; 'play' shows none.
+ * HTML menu screens over the canvas: title, world map (level select), results, summon
+ * (gacha), team select and pause. Only one screen is visible at a time; 'play' shows none.
+ * Also decides when story scenes play: unseen 'before' scenes when a level is entered from
+ * the map or Next, unseen 'after' scenes on a win before the results card.
  */
 (() => {
   const $ = id => document.getElementById(id);
   const SCREENS = ['title', 'levels', 'results', 'gacha', 'team', 'pause'];
   let backTarget = 'title';
-
-  const starStr = (n, max = 3) => '★'.repeat(n) + '☆'.repeat(max - n);
 
   function el(tag, cls, html) {
     const e = document.createElement(tag);
@@ -43,25 +43,25 @@
     box.querySelectorAll('.title-hero').forEach(f => f.classList.toggle('in-team', team.includes(f.dataset.id)));
   }
 
-  // ---------------------------------------------------------------- levels
-  function renderLevels() {
-    const grid = $('level-grid');
-    grid.innerHTML = '';
-    for (const lv of DATA.LEVELS) {
-      const unlocked = GameStorage.isUnlocked(lv.id);
-      const res = GameStorage.getLevelResult(lv.id);
-      const kind = lv.boss ? 'Boss' : lv.type === 'puzzle' ? 'Puzzle' : 'Battle';
-      const b = el('button', 'level-tile' + (unlocked ? '' : ' locked') + (lv.boss ? ' boss' : '') + (lv.type === 'puzzle' ? ' puzzle' : ''));
-      b.type = 'button';
-      b.dataset.level = lv.id;
-      b.innerHTML = `<span class="lv-num">${lv.id}</span><span class="lv-name">${lv.name}</span>` +
-        `<span class="lv-kind">${kind}</span>` +
-        `<span class="stars">${unlocked ? starStr(res.stars) : '🔒'}</span>`;
-      if (!unlocked) b.disabled = true;
-      else if (lv.id === GameStorage.getUnlocked() && !res.cleared) b.classList.add('next');
-      b.addEventListener('click', () => Game.startLevel(lv.id));
-      grid.appendChild(b);
-    }
+  // ---------------------------------------------------------------- story
+  const unseen = scenes => scenes.filter(sc => !GameStorage.sceneSeen(sc.id));
+
+  /** Enter a level, playing its unseen 'before' scenes first. */
+  function playLevel(id) {
+    SFX.unlock();
+    Dialogue.play(unseen(STORY.forLevel(id, 'before')), () => Game.startLevel(id));
+  }
+
+  /** Called when a finished level's results are due: unseen 'after' scenes on a win, then results. */
+  function afterLevel(r) {
+    const scenes = r.won ? unseen(STORY.forLevel(r.levelId, 'after')) : [];
+    Dialogue.play(scenes, () => showResults(r));
+  }
+
+  /** Map story icon: replay what this node has unlocked so far. */
+  function replayStory(id) {
+    SFX.unlock();
+    Dialogue.play(WorldMap.replayable(id), () => WorldMap.render(true));
   }
 
   // ---------------------------------------------------------------- results
@@ -101,7 +101,7 @@
     if (!unlock.hidden) unlock.textContent = `Level ${level.id + 1} unlocked!`;
     if (r.won && level.id === DATA.LEVELS.length && r.firstClear) {
       unlock.hidden = false;
-      unlock.textContent = 'Chapter 1 complete! The Ashen Fields are restored.';
+      unlock.textContent = 'Chapter 1 complete. The Wyrm is down; the Fields are quieter.';
     }
     const next = $('btn-next'), retry = $('btn-retry');
     const hasNext = r.won && DATA.level(level.id + 1);
@@ -232,12 +232,13 @@
   // ---------------------------------------------------------------- navigation
   function show(name) {
     const prev = Game.state.screen;
+    Dialogue.close();
     if ((name === 'gacha' || name === 'team') && prev !== 'gacha' && prev !== 'team') backTarget = prev === 'results' ? 'levels' : prev;
     for (const s of SCREENS) $('screen-' + s).hidden = s !== name;
     Game.setScreen(name);
     refreshFragments();
     if (name === 'title') renderTitle();
-    if (name === 'levels') renderLevels();
+    if (name === 'levels') WorldMap.render();
     if (name === 'gacha') renderGacha();
     if (name === 'team') renderTeam();
     if (name === 'levels' || name === 'title') { if (Game.state.session) Game.quitLevel(); }
@@ -257,18 +258,20 @@
       renderTitle();
     });
     $('btn-retry').addEventListener('click', () => Game.startLevel(Game.state.lastResult.levelId));
-    $('btn-next').addEventListener('click', () => Game.startLevel(Game.state.lastResult.levelId + 1));
+    $('btn-next').addEventListener('click', () => playLevel(Game.state.lastResult.levelId + 1));
     $('btn-pull').addEventListener('click', pull);
     $('btn-resume').addEventListener('click', () => show('play'));
     $('btn-restart').addEventListener('click', () => Game.startLevel(Game.state.levelId));
     $('btn-quit').addEventListener('click', () => show('levels'));
     renderOdds();
+    Dialogue.init();
   }
 
   window.Menu = {
     init,
     show(name) {
       if (name === 'play') {
+        Dialogue.close();
         for (const s of SCREENS) $('screen-' + s).hidden = true;
         Game.setScreen('play');
         return;
@@ -276,5 +279,8 @@
       show(name);
     },
     showResults,
+    afterLevel,
+    playLevel,
+    replayStory,
   };
 })();

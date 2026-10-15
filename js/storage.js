@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Save-data layer. Everything persistent (level progress, stars, fragments, roster,
- * team, summon pity) goes through window.GameStorage; nothing else touches localStorage.
+ * team, summon pity, story scenes seen, map marker) goes through window.GameStorage; nothing else touches localStorage.
  *
  * Same design as the microbe game, so a remote backend can replace localStorage later:
  *   - A backend adapter owns I/O: { load(): Promise<object|null>, save(data): Promise }.
@@ -12,7 +12,8 @@
  */
 (() => {
   const KEY = 'blockknights.save.v1'; // key kept across versions so old saves are found
-  const VERSION = 2;                  // v2: four story starters replace knight/mage/rogue
+  // v2: four story starters replace knight/mage/rogue. v3: story scene seen-flags + map marker.
+  const VERSION = 3;
   const START_FRAGMENTS = 50; // enough for one summon so the screen is never a dead end
 
   function defaultData() {
@@ -27,6 +28,8 @@
       team: window.DATA.DEFAULT_TEAM.slice(),
       gacha: { pulls: 0, sinceLegendary: 0 },
       settings: { sound: true },
+      scenes: {},             // { [sceneId]: true } once a story scene has played
+      mapAt: 1,               // node the party marker stood on when the map was last shown
     };
   }
 
@@ -83,6 +86,21 @@
       d.gacha = { pulls: int(raw.gacha.pulls), sinceLegendary: int(raw.gacha.sinceLegendary) };
     }
     if (raw.settings && typeof raw.settings === 'object') d.settings.sound = raw.settings.sound !== false;
+    const last = window.DATA.LEVELS.length;
+    if (raw.scenes && typeof raw.scenes === 'object') {
+      for (const [id, v] of Object.entries(raw.scenes)) if (v) d.scenes[id] = true;
+    } else if (raw.version != null && raw.version < 3 && window.STORY) {
+      // pre-story saves: scenes for levels already behind the player count as seen, so
+      // replaying an old level isn't interrupted. They stay replayable from the map.
+      for (const sc of window.STORY.SCENES) {
+        const lv = window.DATA.LEVELS[sc.levelIndex];
+        if (!lv) continue;
+        const done = d.levels[lv.id] && d.levels[lv.id].cleared;
+        if (sc.when === 'after' ? done : lv.id < d.unlocked) d.scenes[sc.id] = true;
+      }
+    }
+    // older saves have no marker: start it where the player already is (no walk replay)
+    d.mapAt = Math.min(last, raw.mapAt != null ? int(raw.mapAt, 1) : d.unlocked);
     return d;
   }
 
@@ -194,6 +212,21 @@
       data.gacha.sinceLegendary = rarity === 'legendary' ? 0 : data.gacha.sinceLegendary + 1;
       persist();
       return true;
+    },
+
+    // ---- story + map
+    sceneSeen(id) { return !!data.scenes[id]; },
+    markSceneSeen(id) {
+      if (data.scenes[id]) return;
+      data.scenes[id] = true;
+      persist();
+    },
+    getMapAt() { return data.mapAt; },
+    setMapAt(n) {
+      n = int(n, 1);
+      if (data.mapAt === n) return;
+      data.mapAt = n;
+      persist();
     },
 
     // ---- settings

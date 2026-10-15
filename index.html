@@ -39,14 +39,15 @@
         <p class="note">Progress is saved on this device.</p>
       </section>
 
-      <section id="screen-levels" class="screen scroll" hidden>
-        <header class="bar">
+      <!-- world map (js/map.js): forest at the bottom, the Wyrm at the summit -->
+      <section id="screen-levels" class="screen map-screen" hidden>
+        <div id="map-scroll" class="map-scroll"><div id="map" class="map"></div></div>
+        <header class="bar map-bar">
           <button class="btn back" data-go="title" type="button" aria-label="Back">‹</button>
-          <h2>Ch.1 Ashen Fields</h2>
+          <h2><small>Chapter 1</small>Ashen Fields</h2>
           <div class="chip small"><span class="rune" aria-hidden="true">◆</span><span class="frag-val">0</span></div>
         </header>
-        <div id="level-grid" class="level-grid"></div>
-        <div class="row foot">
+        <div class="row map-foot">
           <button class="btn" data-go="team" type="button">Team</button>
           <button class="btn" data-go="gacha" type="button">Summon</button>
         </div>
@@ -63,7 +64,7 @@
           <div class="res-frag">+<span id="res-frag">0</span> <span class="rune" aria-hidden="true">◆</span> fragments</div>
           <div id="res-unlock" class="res-unlock" hidden></div>
           <div class="res-buttons">
-            <button class="btn" data-go="levels" type="button">Levels</button>
+            <button class="btn" data-go="levels" type="button">Map</button>
             <button id="btn-retry" class="btn" type="button">Retry</button>
             <button id="btn-next" class="btn primary" type="button">Next</button>
           </div>
@@ -115,6 +116,7 @@
 
   <script src="js/utils.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/story.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/board.js"></script>
   <script src="js/dealer.js"></script>
@@ -124,6 +126,8 @@
   <script src="js/fx.js"></script>
   <script src="js/view.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/dialogue.js"></script>
+  <script src="js/map.js"></script>
   <script src="js/menu.js"></script>
 </body>
 </html>

@@ -64,7 +64,7 @@
     unlock() { ctx(); },
     setEnabled(v) { enabled = !!v; },
     get enabled() { return enabled; },
-    /** n = lines (for 'clear'), combo = current combo (raises the chime 2 semitones per step). */
+    /** n = lines (for 'clear') or pitch in Hz (for 'blip'), combo = current combo (raises the chime 2 semitones per step). */
     play(name, n = 1, combo = 1) {
       if (!enabled) return;
       switch (name) {
@@ -88,6 +88,8 @@
         case 'pop': noise(0.25, { vol: 0.2 }); tone(300, 0.3, { slide: -250, vol: 0.08 }); break;
         case 'win': [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.08, delay: i * 0.1 })); break;
         case 'lose': [392, 330, 262].forEach((f, i) => tone(f, 0.25, { type: 'triangle', vol: 0.08, delay: i * 0.15 })); break;
+        // dialogue typing: n = speaker's voice pitch; tiny, soft, a little detuned per blip
+        case 'blip': tone(n * (0.94 + Math.random() * 0.12), 0.045, { type: 'sine', vol: 0.035 }); break;
         case 'summon': [392, 523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.12, { type: 'triangle', vol: 0.06, delay: i * 0.06 })); break;
         default: break;
       }

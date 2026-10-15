@@ -63,7 +63,7 @@
       this.state.lastResult = { levelId: level.id, ...res, ...saved, fragments };
       const delay = Math.max(0, View.busyUntil - FX.t) + 1.7;
       FX.after(delay, () => {
-        if (this.state.session === s && this.state.screen === 'play') Menu.showResults(this.state.lastResult);
+        if (this.state.session === s && this.state.screen === 'play') Menu.afterLevel(this.state.lastResult);
       });
     },
 
@@ -79,6 +79,7 @@
         screen: st.screen, levelId: st.levelId,
         fragments: GameStorage.getFragments(), unlocked: GameStorage.getUnlocked(),
         team: GameStorage.getTeam(), lastResult: st.lastResult,
+        story: Dialogue.state(),
       };
       if (!s) return base;
       return Object.assign(base, {
@@ -242,6 +243,10 @@
       return s ? s.targetCell(r, c) : { ok: false, reason: 'not-playing' };
     },
     show(screen) { Menu.show(screen); },
+    /** Enter a level the way the map does (unseen 'before' scenes first). */
+    playLevel(n) { Menu.playLevel(n); },
+    advanceStory() { Dialogue.advance(); },
+    skipStory() { Dialogue.skip(); },
     storage: window.GameStorage,
     data: window.DATA,
   };

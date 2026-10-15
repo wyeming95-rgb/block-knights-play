@@ -41,8 +41,7 @@
   const loaded = img => !!img && img.complete && img.naturalWidth > 0;
   const RUNES = DATA.PIECE_COLORS.map((c, i) => (i ? loadImg(`art/ui/rune-${i}.webp`) : null));
   const BGS = { forest: loadImg('art/ui/bg-forest.webp'), ruins: loadImg('art/ui/bg-ruins.webp'), snow: loadImg('art/ui/bg-snow.webp') };
-  const LEVEL_BG = { 1: 'forest', 2: 'forest', 3: 'forest', 4: 'ruins', 5: 'snow', 6: 'snow', 7: 'forest', 8: 'ruins', 9: 'ruins', 10: 'ruins' };
-  const bgName = level => LEVEL_BG[level.id] || ['forest', 'snow', 'ruins'][(level.id - 1) % 3];
+  const bgName = level => level.bg || ['forest', 'ruins', 'snow'][Math.floor((level.id - 1) / 3) % 3];
 
   function smoothImage(ctx, img, x, y, w, h) {
     ctx.imageSmoothingEnabled = true;
@@ -473,8 +472,8 @@
       // horizon roughly on the battle ground line; the tray covers whatever is below
       const h = 1000, w = (h * img.naturalWidth) / img.naturalHeight;
       smoothImage(ctx, img, Math.round((W - w) / 2), 236 - h / 2, w, h);
-      if (this.enemy && this.enemy.boss) {
-        ctx.fillStyle = 'rgba(40,8,60,0.35)';
+      if (s.level.tint) {
+        ctx.fillStyle = s.level.tint;
         ctx.fillRect(-20, 0, W + 40, 290);
       }
       // gentle darkening at the top for the enemy HUD, heavy below the scene for the board
