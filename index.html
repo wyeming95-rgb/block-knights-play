@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#120d1c">
+  <title>Block Knights: Rune Puzzle RPG</title>
+  <!-- empty favicon so the browser doesn't log a 404 -->
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- fixed 390x844 design surface, scaled to fit the viewport by js/game.js -->
+  <div id="stage">
+    <canvas id="game" aria-label="Block Knights game canvas"></canvas>
+    <noscript>This game needs JavaScript enabled.</noscript>
+
+    <!-- menus (driven by js/menu.js); the canvas keeps animating behind them -->
+    <div id="ui">
+      <section id="screen-title" class="screen" hidden>
+        <div class="title-wrap">
+          <h1 class="title"><span class="t1">BLOCK</span><span class="t2">KNIGHTS</span></h1>
+          <div class="subtitle">Rune Puzzle RPG</div>
+        </div>
+        <div class="chip frag-chip"><span class="rune" aria-hidden="true">◆</span><span class="frag-val">0</span> fragments</div>
+        <nav class="menu">
+          <button id="btn-play" class="btn primary big" type="button"><span>Play</span><small id="play-sub">Chapter 1</small></button>
+          <div class="row">
+            <button id="btn-team" class="btn" type="button">Team</button>
+            <button id="btn-gacha" class="btn" type="button">Summon</button>
+          </div>
+          <button id="btn-sound" class="btn small ghost" type="button">Sound: on</button>
+        </nav>
+        <p class="note">Progress is saved on this device.</p>
+      </section>
+
+      <section id="screen-levels" class="screen scroll" hidden>
+        <header class="bar">
+          <button class="btn back" data-go="title" type="button" aria-label="Back">‹</button>
+          <h2>Ch.1 Ashen Fields</h2>
+          <div class="chip small"><span class="rune" aria-hidden="true">◆</span><span class="frag-val">0</span></div>
+        </header>
+        <div id="level-grid" class="level-grid"></div>
+        <div class="row foot">
+          <button class="btn" data-go="team" type="button">Team</button>
+          <button class="btn" data-go="gacha" type="button">Summon</button>
+        </div>
+      </section>
+
+      <section id="screen-results" class="screen scroll" hidden>
+        <div class="card results">
+          <div id="res-level" class="muted"></div>
+          <h2 id="res-title">Victory</h2>
+          <div id="res-reason" class="muted"></div>
+          <div id="res-stars" class="stars big" aria-label="stars"></div>
+          <ul id="res-star-rules" class="star-rules"></ul>
+          <dl id="res-rows" class="res-rows"></dl>
+          <div class="res-frag">+<span id="res-frag">0</span> <span class="rune" aria-hidden="true">◆</span> fragments</div>
+          <div id="res-unlock" class="res-unlock" hidden></div>
+          <div class="res-buttons">
+            <button class="btn" data-go="levels" type="button">Levels</button>
+            <button id="btn-retry" class="btn" type="button">Retry</button>
+            <button id="btn-next" class="btn primary" type="button">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="screen-gacha" class="screen scroll" hidden>
+        <header class="bar">
+          <button class="btn back" data-go="back" type="button" aria-label="Back">‹</button>
+          <h2>Rune Summon</h2>
+          <div class="chip small"><span class="rune" aria-hidden="true">◆</span><span class="frag-val">0</span></div>
+        </header>
+        <div id="gacha-stage" class="card gacha-stage">
+          <div id="gacha-result" class="gacha-result"><div class="muted">Summon a new hero with rune fragments.</div></div>
+        </div>
+        <button id="btn-pull" class="btn primary big" type="button"><span>Summon</span><small id="pull-cost">50 fragments</small></button>
+        <div id="pity-line" class="pity"></div>
+        <div class="card odds">
+          <h3>Odds per summon</h3>
+          <table id="odds-table"></table>
+          <p class="fine">Rarity is rolled first, then a hero within that rarity at equal chance. <span id="pity-rule"></span>
+            Duplicates awaken the hero (+10% HP and ATK, up to 5). Fragments are earned by playing only; this prototype sells nothing.</p>
+        </div>
+      </section>
+
+      <section id="screen-team" class="screen scroll" hidden>
+        <header class="bar">
+          <button class="btn back" data-go="back" type="button" aria-label="Back">‹</button>
+          <h2>Team</h2>
+          <div class="chip small"><span id="team-count">3/3</span></div>
+        </header>
+        <p class="hint">Pick 2–3 heroes. Party HP is the sum of the team.</p>
+        <div id="team-slots" class="team-slots"></div>
+        <div id="roster-list" class="roster-list"></div>
+        <div id="team-msg" class="toast" role="status"></div>
+      </section>
+
+      <section id="screen-pause" class="screen dim" hidden>
+        <div class="card pause">
+          <h2>Paused</h2>
+          <button id="btn-resume" class="btn primary" type="button">Resume</button>
+          <button id="btn-restart" class="btn" type="button">Restart level</button>
+          <button id="btn-quit" class="btn" type="button">Retreat to map</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/board.js"></script>
+  <script src="js/dealer.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/sfx.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/view.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/menu.js"></script>
+</body>
+</html>
