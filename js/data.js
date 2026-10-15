@@ -65,6 +65,9 @@
     if (ELEMENTS[def].beats.includes(att)) return 0.75;
     return 1;
   }
+  // heroes with no element (Calder) display as this and always deal x1
+  const NO_ELEMENT = { name: 'None', color: '#c8bfae', beats: [] };
+  const elem = id => ELEMENTS[id] || NO_ELEMENT;
 
   const RARITY = {
     starter:   { name: 'Starter',   color: '#a8a4b8' },
@@ -74,24 +77,32 @@
   };
 
   // ---- heroes. charge = lines needed to fill the skill meter.
+  // skill.combo = minimum current combo before the skill can be used.
+  // portrait = optional full-body art (2:3) shown in the HTML menus; battle keeps the sprites.
   const CHARACTERS = {
-    knight: {
-      id: 'knight', name: 'Knight', element: 'water', rarity: 'starter', hp: 45, atk: 6,
-      passive: { id: 'bulwark', name: 'Bulwark', desc: 'Enemy hits deal 20% less.' },
-      skill: { id: 'aegis', name: 'Aegis Strike', cost: 4, desc: 'Shield the party from the next enemy hit and strike for 3x ATK.' },
-      look: { hat: 'helm', weapon: 'sword', shield: true, body: '#4a7fd0', trim: '#c9d4e8', skin: '#f0c8a0', hair: '#8a95a8' },
+    calder: {
+      id: 'calder', name: 'Calder Voss', element: null, rarity: 'starter', hp: 38, atk: 8, portrait: 'art/calder.webp',
+      passive: { id: 'warmthtest', name: 'Warmth Test', desc: "On a single-line clear, Calder's hit is a precise strike (x1.5)." },
+      skill: { id: 'callline', name: 'Call the Line', cost: 4, desc: 'Clear the fullest row or column as a called line strike. Corruption in or beside it goes quiet.' },
+      look: { hat: 'none', weapon: 'none', frame: true, body: '#9a948a', trim: '#a0502a', skin: '#e8c8a8', hair: '#2e2824' },
     },
-    mage: {
-      id: 'mage', name: 'Mage', element: 'fire', rarity: 'starter', hp: 26, atk: 9,
-      passive: { id: 'echo', name: 'Arcane Echo', desc: 'Multi-line clears get an extra +50% bonus.' },
-      skill: { id: 'runeburst', name: 'Rune Burst', cost: 5, target: true, desc: 'Tap a cell: blast the 3x3 area around it. Damage per cell destroyed.' },
-      look: { hat: 'wizard', weapon: 'staff', body: '#c0443a', trim: '#f0a060', skin: '#f0c8a0', hair: '#e8e0d0' },
+    ione: {
+      id: 'ione', name: 'Ione Pell', element: 'fire', rarity: 'starter', hp: 26, atk: 9, portrait: 'art/ione.webp',
+      passive: { id: 'donotskip', name: 'Do Not Skip', desc: 'At exactly combo x3 her hit is a full fire volley (x2.5). At x4+ she loses count: a smaller spark (x1.25).' },
+      skill: { id: 'fieldseal', name: 'Field Seal', cost: 5, target: true, desc: 'Tap a cell: seal the 3x3 around it and burst it with fire. Damage per cell destroyed.' },
+      look: { hat: 'goggles', weapon: 'staff', body: '#3a3438', trim: '#d0884a', skin: '#f0c8a0', hair: '#8a3a20' },
     },
-    rogue: {
-      id: 'rogue', name: 'Rogue', element: 'shadow', rarity: 'starter', hp: 30, atk: 7,
-      passive: { id: 'opportunist', name: 'Opportunist', desc: '1 in 4 Rogue hits crit for x2 (marble bag, no long droughts).' },
-      skill: { id: 'loadeddice', name: 'Loaded Dice', cost: 3, desc: 'Re-deal your unused pieces; every new piece is guaranteed to fit.' },
-      look: { hat: 'hood', weapon: 'dagger', body: '#3a3450', trim: '#7a6aa0', skin: '#e0b090', hair: '#2a2438' },
+    hesla: {
+      id: 'hesla', name: 'Hesla Venn', element: 'water', rarity: 'starter', hp: 32, atk: 8, portrait: 'art/hesla.webp',
+      passive: { id: 'chill', name: 'Hospital Rule', desc: 'Enemies wait 1 extra turn between attacks.' },
+      skill: { id: 'teachseal', name: 'Teach the Seal', cost: 5, desc: 'Freeze the enemy countdown (+2 turns), stop corruption spreading for 3 turns, and strike as ice for 2x ATK.' },
+      look: { hat: 'pinned', weapon: 'rule', body: '#25222e', trim: '#8fd0f0', skin: '#ecdcd0', hair: '#1a1820' },
+    },
+    neris: {
+      id: 'neris', name: 'Neris Cade', element: 'light', rarity: 'starter', hp: 42, atk: 6, portrait: 'art/neris.webp',
+      passive: { id: 'twohandlift', name: 'Two-Hand Lift', desc: 'Each line cleared adds a hold (max 2). At 2 holds the next enemy hit is shielded and the party is mended a step; holds reset.' },
+      skill: { id: 'setpanel', name: 'Set the Panel', cost: 4, combo: 2, desc: 'Only while the combo is x2 or more: shield the party from the next hit, mend 12% HP and quiet 1 corruption cell.' },
+      look: { hat: 'knot', weapon: 'none', shield: 'panel', body: '#e8dcc0', trim: '#8a8a90', skin: '#e8c0a0', hair: '#2a2020' },
     },
     cleric: {
       id: 'cleric', name: 'Cleric', element: 'light', rarity: 'rare', hp: 34, atk: 6,
@@ -99,17 +110,12 @@
       skill: { id: 'sanctuary', name: 'Sanctuary', cost: 4, desc: 'Heal 35% HP and purify up to 4 corruption cells.' },
       look: { hat: 'halo', weapon: 'mace', body: '#e8e4d8', trim: '#d0b060', skin: '#f0c8a0', hair: '#f0d070' },
     },
+    // Ranger moved up to Epic when the Frost Witch was folded into Hesla, so every tier keeps a hero
     ranger: {
-      id: 'ranger', name: 'Ranger', element: 'nature', rarity: 'rare', hp: 32, atk: 8,
+      id: 'ranger', name: 'Ranger', element: 'nature', rarity: 'epic', hp: 32, atk: 8,
       passive: { id: 'steady', name: 'Steady Aim', desc: 'Combos survive one extra placement without a clear.' },
       skill: { id: 'volley', name: 'Pinning Volley', cost: 4, desc: 'Strike for 4x ATK and delay the enemy attack by 2 turns.' },
       look: { hat: 'cap', weapon: 'bow', body: '#3f7a3a', trim: '#a07a40', skin: '#e0b090', hair: '#7a4a2a' },
-    },
-    witch: {
-      id: 'witch', name: 'Frost Witch', element: 'water', rarity: 'epic', hp: 30, atk: 9,
-      passive: { id: 'chill', name: 'Chill', desc: 'Enemies wait 1 extra turn between attacks.' },
-      skill: { id: 'freeze', name: 'Deep Freeze', cost: 5, desc: 'Delay the enemy 3 turns, stop corruption spreading for 4 turns, 2x ATK hit.' },
-      look: { hat: 'witch', weapon: 'staff', body: '#5ab0d8', trim: '#e0f4ff', skin: '#e8d8f0', hair: '#d0f0ff' },
     },
     dragoon: {
       id: 'dragoon', name: 'Dragoon', element: 'fire', rarity: 'legendary', hp: 42, atk: 11,
@@ -118,7 +124,10 @@
       look: { hat: 'horns', weapon: 'spear', body: '#8a2a2a', trim: '#e0a040', skin: '#e0b090', hair: '#401010' },
     },
   };
-  const STARTERS = ['knight', 'mage', 'rogue'];
+  const STARTERS = ['calder', 'ione', 'hesla', 'neris'];
+  const DEFAULT_TEAM = ['calder', 'ione', 'neris']; // teams hold up to 3
+  // ids from v1 saves -> current heroes (the old summonable Frost Witch became Hesla)
+  const LEGACY_IDS = { knight: 'calder', mage: 'ione', rogue: 'neris', witch: 'hesla' };
 
   // ---- enemies. every = turns (placements) between attacks.
   const ENEMIES = {
@@ -170,14 +179,14 @@
     maxedRefund: 20,     // fragments back when a fully awakened hero is drawn again
     tiers: [
       { rarity: 'legendary', rate: 5,  chars: ['dragoon'] },
-      { rarity: 'epic',      rate: 20, chars: ['witch'] },
-      { rarity: 'rare',      rate: 75, chars: ['cleric', 'ranger'] },
+      { rarity: 'epic',      rate: 20, chars: ['ranger'] },
+      { rarity: 'rare',      rate: 75, chars: ['cleric'] },
     ],
   };
 
   window.DATA = {
-    SHAPES, SHAPE, PIECE_COLORS, ELEMENTS, elemMult, RARITY,
-    CHARACTERS, STARTERS, ENEMIES, LEVELS, GACHA,
+    SHAPES, SHAPE, PIECE_COLORS, ELEMENTS, elemMult, elem, RARITY,
+    CHARACTERS, STARTERS, DEFAULT_TEAM, LEGACY_IDS, ENEMIES, LEVELS, GACHA,
     level: id => LEVELS.find(l => l.id === id) || null,
   };
 })();

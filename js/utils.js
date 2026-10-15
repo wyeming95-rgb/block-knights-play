@@ -8,10 +8,12 @@
     clamp: (v, a, b) => (v < a ? a : v > b ? b : v),
     lerp: (a, b, t) => a + (b - a) * t,
     easeOutCubic: t => 1 - Math.pow(1 - t, 3),
-    easeOutBack: t => {
-      const c1 = 1.70158, c3 = c1 + 1;
+    easeOutBack: (t, c1 = 1.70158) => {
+      const c3 = c1 + 1;
       return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
     },
+    /** Damped spring from 1 to 0: a squash that wobbles a few times and settles. */
+    spring: (t, freq = 30, damp = 9) => Math.exp(-t * damp) * Math.cos(t * freq),
     /** Exponential approach that is frame-rate independent. */
     approach: (cur, target, rate, dt) => cur + (target - cur) * (1 - Math.exp(-rate * dt)),
   };

@@ -58,7 +58,7 @@
       return ids.map(id => this.piece(id));
     }
 
-    /** Rogue's Loaded Dice: replace every unused piece with one that fits. */
+    /** Replace every unused piece with one that fits (no current kit uses this; was the Rogue's Loaded Dice). */
     reroll(board, hand) {
       return hand.map(p => {
         if (p.used) return p;

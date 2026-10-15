@@ -72,6 +72,8 @@
     dealT: -10,
     drag: null,           // { index, x, y, t0, r, c, valid, clears }
     hover: null,          // { r, c } while targeting
+    punch: null,          // { t, amp } board squash after a clear
+    holdT: -10,           // last change to Neris' holds (pip pulse)
     idleTeam: [],
 
     // ---------------------------------------------------------- layout
@@ -100,6 +102,8 @@
       this.dealT = FX.t;
       this.drag = null;
       this.hover = null;
+      this.punch = null;
+      this.holdT = -10;
       this.members = session.members.map(() => ({ lunge: -10, flash: 0, ready: 0 }));
       const pb = this.partyBar;
       Object.assign(pb, bar(), { shown: session.party.hp, ghost: session.party.hp, target: session.party.hp, max: session.party.maxHp });
@@ -160,26 +164,40 @@
         }
         case 'clear': {
           const color = DATA.PIECE_COLORS;
+          const heat = Math.min(4, d.combo - 1); // more of everything as the combo climbs
+          let sx = 0, sy = 0;
           for (const cell of d.cells) {
             this.cellFx.set(cell.r * 8 + cell.c, { kind: 'clear', t: now, color: color[cell.color] });
             const p = this.cellCenter(cell.r, cell.c);
-            FX.burst(p.x, p.y, color[cell.color], 3, { speed: 200, size: 5, life: 0.7 });
-            FX.burst(p.x, p.y, '#ffffff', 1, { speed: 120, size: 3, life: 0.4 });
+            sx += p.x; sy += p.y;
+            FX.burst(p.x, p.y, color[cell.color], 3 + heat, { speed: 200 + 30 * heat, size: 5, life: 0.7 });
+            FX.burst(p.x, p.y, '#ffffff', 2, { speed: 140, size: 3, life: 0.4 });
           }
           for (const cell of d.purified) {
             this.cellFx.set(cell.r * 8 + cell.c, { kind: 'purify', t: now });
             const p = this.cellCenter(cell.r, cell.c);
             FX.burst(p.x, p.y, '#e8d0ff', 6, { speed: 140, size: 3, life: 0.8, grav: -60 });
           }
-          FX.addShake(3 + d.lines * 2);
+          for (const r of d.rows) FX.streak(BOARD.x + BOARD.size / 2, this.cellCenter(r, 0).y, BOARD.size, BOARD.cell, '#ffffff');
+          for (const c of d.cols) FX.streak(this.cellCenter(0, c).x, BOARD.y + BOARD.size / 2, BOARD.cell, BOARD.size, '#ffffff');
+          if (d.cells.length) {
+            const n = d.cells.length;
+            FX.ring(sx / n, sy / n, d.combo >= 2 ? '#ff9a3d' : '#ffffff', { r1: 60 + 30 * d.lines + 12 * heat, width: 4 + d.lines });
+          }
+          // board squash: amplitude grows with lines and combo, settles in ~0.4s
+          this.punch = { t: now, amp: Math.min(0.07, 0.022 + 0.01 * d.lines + 0.006 * heat) };
+          FX.addShake(Math.min(10, 2 + 1.5 * d.lines + heat));
           FX.stop(0.035 + 0.015 * d.lines);
-          SFX.play('clear', d.lines);
+          SFX.play('clear', d.lines, d.combo);
           const mid = BOARD.y + BOARD.size / 2;
           if (d.lines >= 2) {
             const words = ['', '', 'DOUBLE!', 'TRIPLE!', 'RUNE STORM!'];
             FX.banner(words[Math.min(4, d.lines)], { color: '#7fe6ff', size: 36, y: mid / H, life: 0.9 });
           }
-          if (d.combo >= 2) FX.text(W / 2, mid + (d.lines >= 2 ? 40 : 0), `COMBO x${d.combo}`, { color: '#ff9a3d', size: 22 + Math.min(14, d.combo * 2), rise: 40, vx: 0, life: 1 });
+          if (d.combo >= 2) {
+            FX.text(W / 2, mid + (d.lines >= 2 ? 40 : 0), `COMBO x${d.combo}!`,
+              { color: d.combo >= 4 ? '#ff5a3d' : '#ff9a3d', size: 24 + Math.min(16, d.combo * 3), rise: 46, vx: 0, life: 1.1, bounce: 4 });
+          }
           break;
         }
         case 'attack': {
@@ -222,8 +240,9 @@
           FX.after(start + 0.14, () => {
             const pc = this.partyCenter();
             if (d.blocked) {
-              FX.text(pc.x, pc.y - 20, 'BLOCKED', { color: '#7fc8ff', size: 24 });
-              FX.burst(pc.x + 40, pc.y, '#7fc8ff', 18, { speed: 220, dir: Math.PI, spread: 1.6, size: 5 });
+              const col = d.brace ? '#fff1a8' : '#7fc8ff';
+              FX.text(pc.x, pc.y - 20, d.brace ? 'BRACED' : 'BLOCKED', { color: col, size: 24 });
+              FX.burst(pc.x + 40, pc.y, col, 18, { speed: 220, dir: Math.PI, spread: 1.6, size: 5 });
               FX.addShake(4);
               SFX.play('block');
               return;
@@ -275,6 +294,9 @@
           if (this.members[d.member]) this.members[d.member].ready = now;
           SFX.play('ready');
           break;
+        case 'holds':
+          this.holdT = now;
+          break;
         case 'stuck':
           FX.banner('NO MOVES!', { color: '#ff7a7a', size: 34, y: (BOARD.y + BOARD.size / 2) / H, life: 2.2, sub: 'Tap a glowing hero to use a skill' });
           break;
@@ -283,7 +305,7 @@
           if (m) m.lunge = now;
           const pc = this.partyCenter(d.member);
           FX.banner(d.name, { color: SIGNAL, size: 26, y: 0.13, life: 1 });
-          FX.burst(pc.x, pc.y, DATA.ELEMENTS[s.members[d.member].element].color, 16, { speed: 160, size: 4, grav: -40 });
+          FX.burst(pc.x, pc.y, DATA.elem(s.members[d.member].element).color, 16, { speed: 160, size: 4, grav: -40 });
           SFX.play('skill');
           break;
         }
@@ -329,8 +351,8 @@
       this.hitBar(this.enemyBar, Math.max(0, this.enemyBar.target - h.dmg));
       const c = this.enemyCenter();
       const color = h.crit ? '#ff9a3d' : h.eff > 1 ? '#ffe9a0' : h.eff < 1 ? '#b8b0c8' : '#ffffff';
-      FX.text(c.x - 10, c.y - 20, (h.crit ? 'CRIT ' : '') + h.dmg, { color, size: Math.min(40, 16 + h.dmg / 4) + (h.crit ? 4 : 0) });
-      const el = DATA.ELEMENTS[this.session.members[h.member].element].color;
+      FX.text(c.x - 10, c.y - 20, (h.tag ? h.tag + ' ' : '') + h.dmg, { color, size: Math.min(40, 16 + h.dmg / 4) + (h.crit ? 4 : 0) });
+      const el = DATA.elem(this.session.members[h.member].element).color;
       FX.burst(c.x - 20, c.y, el, h.crit ? 16 : 9, { speed: 240, dir: 0, spread: 1.4, size: 5 });
       FX.addShake(h.crit ? 7 : 3);
       FX.stop(h.crit ? 0.06 : 0.025);
@@ -340,8 +362,10 @@
     // ---------------------------------------------------------- per-frame
     update(dt) {
       for (const b of [this.enemyBar, this.partyBar]) {
-        b.shown = U.approach(b.shown, b.target, 6, dt);
-        if (FX.t >= b.ghostWait) b.ghost = U.approach(b.ghost, b.shown, 3, dt);
+        // damage snaps the bar down almost at once; the light "ghost" chunk of recent
+        // damage lingers ~0.4s (ghostWait), then drains smoothly. Heals fill gently.
+        b.shown = U.approach(b.shown, b.target, b.target < b.shown ? 30 : 7, dt);
+        if (FX.t >= b.ghostWait) b.ghost = U.approach(b.ghost, b.shown, 5, dt);
         if (b.ghost < b.shown) b.ghost = b.shown;
       }
     },
@@ -353,7 +377,18 @@
       ctx.translate(sx, sy);
       this.drawScene(ctx, s);
       this.drawCards(ctx, s);
+      // squash-and-settle around the board centre (visual only; input uses the unscaled grid)
+      const pt = this.punch ? FX.t - this.punch.t : 1;
+      const sq = pt >= 0 && pt < 0.5 ? this.punch.amp * U.spring(pt) : 0;
+      if (sq) {
+        const cx = BOARD.x + BOARD.size / 2, cy = BOARD.y + BOARD.size / 2;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(1 + sq, 1 - sq);
+        ctx.translate(-cx, -cy);
+      }
       this.drawBoard(ctx, s);
+      if (sq) ctx.restore();
       this.drawTray(ctx, s);
       ctx.restore();
       this.drawHUD(ctx, s);
@@ -476,7 +511,9 @@
       const gr = b.max ? U.clamp(b.ghost / b.max, 0, 1) : 0;
       ctx.fillStyle = '#1a1020'; ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
       ctx.fillStyle = '#3a2a40'; ctx.fillRect(x, y, w, h);
-      ctx.fillStyle = '#f4e0c0'; ctx.fillRect(x, y, Math.round(w * gr), h);
+      // recent-damage chunk: bright while it lingers, warmer once it starts draining
+      ctx.fillStyle = FX.t < b.ghostWait ? '#fff4dc' : '#f0c890';
+      ctx.fillRect(x, y, Math.round(w * gr), h);
       ctx.fillStyle = FX.t < b.flash ? '#ffffff' : r > 0.5 ? '#5cd060' : r > 0.25 ? '#f0a830' : '#e84a4a';
       ctx.fillRect(x, y, Math.round(w * r), h);
       ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(x, y, Math.round(w * r), 2);
@@ -527,7 +564,8 @@
       const n = s.members.length, t = FX.t;
       s.members.forEach((m, i) => {
         const r = this.cardRect(i, n);
-        const ready = m.charge >= m.cost && !s.over;
+        const ready = s.skillUsable(m) && !s.over;
+        const gated = !ready && m.charge >= m.cost && !s.over; // charged, waiting on a combo
         const targeting = s.targeting && s.targeting.member === i;
         ctx.fillStyle = '#1a1020';
         roundRect(ctx, r.x, r.y, r.w, r.h, 8); ctx.fill();
@@ -540,12 +578,22 @@
           roundRect(ctx, r.x + 1.5, r.y + 1.5, r.w - 3, r.h - 3, 8); ctx.stroke();
           ctx.globalAlpha = 1;
         }
-        const el = DATA.ELEMENTS[m.element];
+        const el = DATA.elem(m.element);
         ctx.fillStyle = '#16101f'; ctx.fillRect(r.x + 7, r.y + 7, 40, 40);
         Sprites.portrait(ctx, m.id, r.x + 7, r.y + 7, 40);
         ctx.fillStyle = el.color; ctx.fillRect(r.x + 7, r.y + 49, 40, 3);
         const tx = r.x + 53;
-        text(ctx, m.name, tx, r.y + 15, { size: 12 });
+        text(ctx, m.name.split(' ')[0], tx, r.y + 15, { size: 12 });
+        if (m.def.passive.id === 'twohandlift') {
+          // Neris' holds: two pips, top-right; they pulse when they change
+          const pulse = 1 + 0.5 * Math.max(0, 1 - (t - this.holdT) / 0.3);
+          for (let k = 0; k < 2; k++) {
+            const px = r.x + r.w - 14 - k * 11, py = r.y + 14, h = 4 * (k < s.holds ? pulse : 1);
+            ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 5, py - 5, 10, 10);
+            ctx.fillStyle = k < s.holds ? '#fff1a8' : '#3a2f4a';
+            ctx.fillRect(px - h, py - h, h * 2, h * 2);
+          }
+        }
         text(ctx, m.def.skill.name, tx, r.y + 30, { size: 9, color: '#b8acd0', stroke: false });
         // charge meter: one segment per line needed
         const bw = r.x + r.w - 8 - tx, seg = bw / m.cost;
@@ -553,8 +601,12 @@
           ctx.fillStyle = k < m.charge ? (ready ? SIGNAL : el.color) : '#3a2f4a';
           ctx.fillRect(Math.round(tx + k * seg), r.y + 42, Math.max(2, Math.round(seg) - 2), 8);
         }
-        const label = targeting ? 'PICK A CELL' : ready ? 'TAP!' : `${m.charge}/${m.cost}`;
-        text(ctx, label, tx, r.y + 61, { size: ready || targeting ? 12 : 10, color: targeting ? '#7fe6ff' : ready ? SIGNAL : '#8a80a0', weight: 900 });
+        // a charged skill that needs a combo says so instead of glowing
+        const label = targeting ? 'PICK A CELL' : ready ? 'TAP!' : gated ? `COMBO x${m.def.skill.combo}+` : `${m.charge}/${m.cost}`;
+        text(ctx, label, tx, r.y + 61, {
+          size: ready || targeting ? 12 : gated ? 9 : 10,
+          color: targeting ? '#7fe6ff' : ready ? SIGNAL : gated ? '#ff9a3d' : '#8a80a0', weight: 900,
+        });
         const rt = (t - this.members[i].ready) / 0.4;
         if (rt >= 0 && rt < 1) {
           ctx.fillStyle = `rgba(255,211,77,${0.5 * (1 - rt)})`;
@@ -609,9 +661,11 @@
             ctx.fillRect(x, y, C, C);
           }
           if (fx && (fx.kind === 'clear' || fx.kind === 'purify')) {
-            const k = (t - fx.t) / 0.3;
+            const k = (t - fx.t) / 0.34;
             if (k < 1) {
-              const sz = Math.round(C * (1 - k)), o = Math.round((C - sz) / 2);
+              // pop up to 1.22x, then shrink away
+              const sc = k < 0.2 ? 1 + 0.22 * U.easeOutCubic(k / 0.2) : 1.22 * (1 - U.easeOutCubic((k - 0.2) / 0.8));
+              const sz = Math.round(C * sc), o = Math.round((C - sz) / 2);
               ctx.fillStyle = k < 0.3 ? '#ffffff' : (fx.color || '#e8d0ff');
               ctx.globalAlpha = 1 - k;
               ctx.fillRect(x + o, y + o, sz, sz);
@@ -634,7 +688,8 @@
           ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
           ctx.strokeStyle = '#ff7a3d'; ctx.lineWidth = 3; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
         }
-        text(ctx, 'Tap a cell to cast Rune Burst', W / 2, BOARD.y + BOARD.size + 14, { size: 13, align: 'center', color: '#7fe6ff' });
+        const tm = s.targeting && s.members[s.targeting.member];
+        text(ctx, `Tap a cell to cast ${tm ? tm.def.skill.name : 'the skill'}`, W / 2, BOARD.y + BOARD.size + 14, { size: 13, align: 'center', color: '#7fe6ff' });
       }
     },
 

@@ -9,6 +9,8 @@
 (() => {
   const COMBO_STEP = 0.25, COMBO_CAP = 3;
   const BASE_GRACE = 1;  // a combo survives this many placements without a clear
+  const HOLD_MAX = 2;    // Neris: "two people, one beam"
+  const MEND = 0.08;     // Neris' passive mend, fraction of party max HP (party HP is pooled)
 
   class Session {
     constructor({ level, team, seed, onEvent }) {
@@ -34,15 +36,15 @@
       const maxHp = this.members.reduce((a, m) => a + m.hp, 0);
       this.party = { hp: maxHp, maxHp };
       this.passives = new Set(this.members.map(m => m.def.passive.id));
-      this.critBag = new U.MarbleBag([[true, 1], [false, 3]], this.rng);
 
       this.turn = 0;
       this.combo = 0;
       this.dry = 0;
       this.shield = false;
+      this.holds = 0;            // Neris' Two-Hand Lift (0..HOLD_MAX)
       this.freeze = 0;
       this.phase = 'play';       // play | target | won | lost
-      this.targeting = null;     // { member } while Rune Burst waits for a cell
+      this.targeting = null;     // { member } while a targeted skill (Field Seal) waits for a cell
       this.stuck = false;
       this.result = null;
       this.stats = { lines: 0, damage: 0, purified: 0, maxCombo: 0, skills: 0 };
@@ -127,6 +129,10 @@
 
       if (!fromSkill) this.gainCharge(lines);
       if (this.has('mend')) this.heal(lines);
+      if (this.has('twohandlift') && this.holds < HOLD_MAX) {
+        this.holds = Math.min(HOLD_MAX, this.holds + lines);
+        this.emit('holds', { holds: this.holds, max: HOLD_MAX });
+      }
       return this.isBattle ? this.partyAttack(lines) : 0;
     }
 
@@ -147,24 +153,32 @@
     comboMult() { return Math.min(COMBO_CAP, 1 + COMBO_STEP * Math.max(0, this.combo - 1)); }
     lineBonus(lines) {
       if (lines <= 1) return 1;
-      return 1 + 0.5 * (lines - 1) + (this.has('echo') ? 0.5 : 0);
+      return 1 + 0.5 * (lines - 1);
     }
 
-    /** One hit from member m with raw power; applies element, crits and first strike. */
-    hitFrom(idx, power) {
+    /**
+     * One hit from member m with raw power; applies element and hit passives.
+     * `lines` is set for line-clear attacks (not skills). tag labels the number on screen.
+     */
+    hitFrom(idx, power, lines = 0) {
       const m = this.members[idx];
       const eff = DATA.elemMult(m.element, this.enemy.element);
       let dmg = power * eff;
-      let crit = false;
-      if (m.def.passive.id === 'opportunist' && this.critBag.draw()) { dmg *= 2; crit = true; }
-      if (m.def.passive.id === 'firststrike' && !this.enemy.hitBy.has(idx)) { dmg *= 2; crit = true; }
+      let crit = false, tag = '';
+      const pid = m.def.passive.id;
+      if (pid === 'firststrike' && !this.enemy.hitBy.has(idx)) { dmg *= 2; crit = true; tag = 'CRIT'; }
+      if (pid === 'warmthtest' && lines === 1) { dmg *= 1.5; tag = 'PRECISE'; }
+      if (pid === 'donotskip' && lines) {
+        if (this.combo === 3) { dmg *= 2.5; crit = true; tag = 'VOLLEY'; }
+        else if (this.combo >= 4) { dmg *= 1.25; tag = 'SPARK'; }
+      }
       this.enemy.hitBy.add(idx);
-      return { member: idx, dmg: Math.max(1, Math.round(dmg)), crit, eff };
+      return { member: idx, dmg: Math.max(1, Math.round(dmg)), crit, eff, tag };
     }
 
     partyAttack(lines) {
       const mult = lines * this.comboMult() * this.lineBonus(lines);
-      const hits = this.members.map((m, idx) => this.hitFrom(idx, m.atk * mult));
+      const hits = this.members.map((m, idx) => this.hitFrom(idx, m.atk * mult, lines));
       return this.damageEnemy(hits, { lines, combo: this.combo });
     }
 
@@ -216,11 +230,19 @@
     enemyAttack() {
       const e = this.enemy;
       e.countdown = e.every;
-      let dmg = e.atk;
-      if (this.has('bulwark')) dmg = Math.round(dmg * 0.8);
+      const dmg = e.atk;
       if (this.shield) {
         this.shield = false;
         this.emit('enemyAttack', { dmg: 0, blocked: true, hp: this.party.hp });
+        return;
+      }
+      if (this.has('twohandlift') && this.holds >= HOLD_MAX) {
+        // Neris braces: the hit becomes shield, then she mends (party HP is pooled, so
+        // "mend the lowest ally a step" is a small party heal)
+        this.holds = 0;
+        this.emit('enemyAttack', { dmg: 0, blocked: true, brace: true, hp: this.party.hp });
+        this.emit('holds', { holds: 0, max: HOLD_MAX });
+        this.heal(Math.round(this.party.maxHp * MEND));
         return;
       }
       this.party.hp = Math.max(0, this.party.hp - dmg);
@@ -254,7 +276,12 @@
     }
 
     // ---------------------------------------------------------------- stuck / end
-    canUseAnySkill() { return this.members.some(m => m.charge >= m.cost); }
+    /** Charged, and any combo requirement (Neris' Set the Panel) is met right now. */
+    skillUsable(m) {
+      const need = m.def.skill.combo || 0;
+      return m.charge >= m.cost && this.combo >= need;
+    }
+    canUseAnySkill() { return this.members.some(m => this.skillUsable(m)); }
 
     checkStuck() {
       if (this.over) return;
@@ -301,6 +328,7 @@
       const m = this.members[i];
       if (!m || m.charge < m.cost) return { ok: false, reason: 'not-ready' };
       const skill = m.def.skill;
+      if (!this.skillUsable(m)) return { ok: false, reason: 'needs-combo', combo: skill.combo };
 
       if (skill.target) {
         this.phase = 'target';
@@ -315,36 +343,37 @@
       const atkHit = mult => (this.isBattle && this.enemy ? this.damageEnemy([this.hitFrom(i, m.atk * mult)], { skill: skill.id }) : 0);
 
       switch (skill.id) {
-        case 'aegis':
-          this.shield = true;
-          this.emit('shield', {});
-          atkHit(3);
-          break;
-        case 'loadeddice':
-          this.hand = this.dealer.reroll(this.board, this.hand);
-          this.emit('deal', { reroll: true });
-          break;
-        case 'sanctuary': {
-          this.heal(Math.round(this.party.maxHp * 0.35));
-          const b = this.board, spots = [];
-          for (let k = 0; k < b.corrupt.length; k++) if (b.corrupt[k]) spots.push(k);
-          this.rng.shuffle(spots);
-          const purified = spots.slice(0, 4).map(k => {
-            b.corrupt[k] = 0;
-            return { r: Math.floor(k / b.size), c: k % b.size };
-          });
-          this.stats.purified += purified.length;
-          if (purified.length) this.emit('purify', { cells: purified });
+        case 'callline': {
+          // the single fullest line, rows first on a tie; resolves as a real 1-line clear
+          const b = this.board;
+          let best = { n: -1 };
+          for (let k = 0; k < b.size; k++) {
+            if (b.rowCount(k) > best.n) best = { n: b.rowCount(k), rows: [k], cols: [] };
+          }
+          for (let k = 0; k < b.size; k++) {
+            if (b.colCount(k) > best.n) best = { n: b.colCount(k), rows: [], cols: [k] };
+          }
+          this.resolveClear(best.rows, best.cols, { fromSkill: true });
           break;
         }
+        case 'setpanel':
+          this.shield = true;
+          this.emit('shield', {});
+          this.heal(Math.round(this.party.maxHp * 0.12));
+          this.purifyRandom(1);
+          break;
+        case 'teachseal':
+          if (this.enemy) this.enemy.countdown += 2;
+          this.freeze = 3;
+          atkHit(2);
+          break;
+        case 'sanctuary':
+          this.heal(Math.round(this.party.maxHp * 0.35));
+          this.purifyRandom(4);
+          break;
         case 'volley':
           if (this.enemy) this.enemy.countdown += 2;
           atkHit(4);
-          break;
-        case 'freeze':
-          if (this.enemy) this.enemy.countdown += 3;
-          this.freeze = 4;
-          atkHit(2);
           break;
         case 'dive': {
           const b = this.board;
@@ -361,7 +390,20 @@
       return { ok: true };
     }
 
-    /** Rune Burst target pick. */
+    /** Purify up to n random corruption cells. */
+    purifyRandom(n) {
+      const b = this.board, spots = [];
+      for (let k = 0; k < b.corrupt.length; k++) if (b.corrupt[k]) spots.push(k);
+      this.rng.shuffle(spots);
+      const purified = spots.slice(0, n).map(k => {
+        b.corrupt[k] = 0;
+        return { r: Math.floor(k / b.size), c: k % b.size };
+      });
+      this.stats.purified += purified.length;
+      if (purified.length) this.emit('purify', { cells: purified });
+    }
+
+    /** Field Seal target pick. */
     targetCell(r, c) {
       if (this.phase !== 'target' || !this.targeting) return { ok: false, reason: 'not-targeting' };
       if (!this.board.inBounds(r, c)) return { ok: false, reason: 'out-of-bounds' };
@@ -373,10 +415,10 @@
       this.stats.skills++;
       const res = this.board.clearArea(r, c, 1);
       this.stats.purified += res.purified.length;
-      this.emit('skill', { member: i, skill: 'runeburst', name: m.def.skill.name });
+      this.emit('skill', { member: i, skill: m.def.skill.id, name: m.def.skill.name });
       this.emit('burst', { r, c, cells: res.cells, purified: res.purified });
       const n = res.cells.length + res.purified.length;
-      if (this.isBattle && this.enemy && n) this.damageEnemy([this.hitFrom(i, m.atk * 0.6 * n)], { skill: 'runeburst' });
+      if (this.isBattle && this.enemy && n) this.damageEnemy([this.hitFrom(i, m.atk * 0.6 * n)], { skill: m.def.skill.id });
       this.afterSkill();
       return { ok: true, destroyed: n };
     }

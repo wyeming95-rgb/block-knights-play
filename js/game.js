@@ -1,7 +1,7 @@
 'use strict';
 /**
  * Main controller: scaling, the frame loop, pointer input (drag & drop pieces,
- * tap heroes, Rune Burst targeting), level start/finish and rewards.
+ * tap heroes, Field Seal targeting), level start/finish and rewards.
  * Exposes the debug/test hook window.BK.
  */
 (() => {
@@ -89,7 +89,8 @@
         }),
         board: s.board.toArray(),
         party: { hp: s.party.hp, maxHp: s.party.maxHp, shield: s.shield },
-        members: s.members.map(m => ({ id: m.id, charge: m.charge, cost: m.cost, ready: m.charge >= m.cost })),
+        members: s.members.map(m => ({ id: m.id, charge: m.charge, cost: m.cost, ready: s.skillUsable(m) })),
+        holds: s.holds,
         enemy: s.enemy ? { name: s.enemy.name, hp: s.enemy.hp, maxHp: s.enemy.maxHp, countdown: s.enemy.countdown, wave: s.waveIndex + 1, waves: s.level.waves.length } : null,
         goal: s.goal ? { kind: s.goal.kind, target: s.goal.target, progress: s.goalProgress(), turnsLeft: s.turnsLeft() } : null,
         result: s.result,
@@ -124,7 +125,7 @@
     ctx.fillRect(0, 0, W, H);
     const s = Game.state.session;
     if (s && (scr === 'play' || scr === 'pause' || scr === 'results')) View.draw(ctx);
-    else View.drawIdle(ctx, GameStorage.getTeam());
+    else View.drawIdle(ctx, scr === 'title' ? [] : GameStorage.getTeam()); // title shows portraits instead
     requestAnimationFrame(loop);
   }
 
@@ -162,6 +163,10 @@
         if (!res.ok && res.reason === 'not-ready') {
           const m = s.members[i], r = View.cardRect(i, s.members.length);
           FX.text(r.x + r.w / 2, r.y + 10, `Needs ${m.cost - m.charge} more line${m.cost - m.charge > 1 ? 's' : ''}`, { size: 12, color: '#b8acd0', rise: 24, vx: 0 });
+        } else if (!res.ok && res.reason === 'needs-combo') {
+          const r = View.cardRect(i, s.members.length);
+          FX.text(r.x + r.w / 2, r.y + 10, `Needs combo x${res.combo} (now x${s.combo})`, { size: 12, color: '#ff9a3d', rise: 24, vx: 0 });
+          SFX.play('bad');
         }
         return;
       }

@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Juice: particles, floating damage numbers, banners, screen shake, hit-stop and a
+ * Juice: particles, rings, line streaks, floating damage numbers, banners, screen shake, hit-stop and a
  * small timer queue. Everything runs on FX.t (seconds), which pauses during hit-stop.
  */
 (() => {
@@ -20,6 +20,7 @@
   const FX = {
     t: 0,
     particles: [],
+    shapes: [],    // rings and line streaks
     floaters: [],
     banners: [],
     timers: [],
@@ -28,6 +29,7 @@
 
     reset() {
       this.particles.length = 0;
+      this.shapes.length = 0;
       this.floaters.length = 0;
       this.banners.length = 0;
       this.timers.length = 0;
@@ -53,12 +55,25 @@
       }
     },
 
-    /** Damage-number style text: pops in, floats up on an arc, fades. Size by value. */
-    text(x, y, str, { color = '#ffffff', size = 18, life = 0.9, vx = null, rise = 60 } = {}) {
+    /**
+     * Damage-number style text: pops in with an overshoot (0 -> ~1.35 -> 1), rises,
+     * then fades. Size by value. `bounce` sets how hard it overshoots.
+     */
+    text(x, y, str, { color = '#ffffff', size = 18, life = 0.9, vx = null, rise = 60, bounce = 3.2 } = {}) {
       this.floaters.push({
         x: x + (Math.random() - 0.5) * 16, y, str, color, size, life, age: 0,
-        vx: vx == null ? (Math.random() - 0.5) * 50 : vx, rise,
+        vx: vx == null ? (Math.random() - 0.5) * 50 : vx, rise, bounce,
       });
+    },
+
+    /** Expanding shockwave ring. */
+    ring(x, y, color, { r0 = 6, r1 = 70, life = 0.35, width = 5 } = {}) {
+      this.shapes.push({ kind: 'ring', x, y, color, r0, r1, life, width, age: 0 });
+    },
+
+    /** Bright bar along a cleared row/column that thins out and fades. (x,y) is its centre. */
+    streak(x, y, w, h, color, { life = 0.28 } = {}) {
+      this.shapes.push({ kind: 'streak', x, y, w, h, color, life, age: 0 });
     },
 
     /** Hurry any showing banners into their fade-out (e.g. the intro once play starts). */
@@ -86,6 +101,11 @@
         p.x += p.vx * dt;
         p.y += p.vy * dt;
       }
+      for (let i = this.shapes.length - 1; i >= 0; i--) {
+        const s = this.shapes[i];
+        s.age += dt;
+        if (s.age >= s.life) this.shapes.splice(i, 1);
+      }
       for (let i = this.floaters.length - 1; i >= 0; i--) {
         const f = this.floaters[i];
         f.age += dt;
@@ -104,6 +124,24 @@
     },
 
     drawParticles(ctx) {
+      for (const s of this.shapes) {
+        const k = s.age / s.life;
+        ctx.globalAlpha = 1 - k;
+        if (s.kind === 'ring') {
+          ctx.strokeStyle = s.color;
+          ctx.lineWidth = Math.max(1, s.width * (1 - k));
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, U.lerp(s.r0, s.r1, U.easeOutCubic(k)), 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          // streak: full length, thickness collapses from 1.4x to 0
+          const horiz = s.w >= s.h;
+          const t = (1 - U.easeOutCubic(k)) * 1.4;
+          const w = horiz ? s.w : s.w * t, h = horiz ? s.h * t : s.h;
+          ctx.fillStyle = s.color;
+          ctx.fillRect(s.x - w / 2, s.y - h / 2, w, h);
+        }
+      }
       for (const p of this.particles) {
         ctx.globalAlpha = 1 - p.age / p.life;
         ctx.fillStyle = p.color;
@@ -115,18 +153,25 @@
     drawText(ctx) {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      const POP = 0.22; // seconds for the overshoot pop-in
       for (const f of this.floaters) {
         const k = f.age / f.life;
-        const pop = k < 0.15 ? U.easeOutBack(k / 0.15) : 1;
+        const pk = Math.min(1, f.age / POP);
+        const pop = Math.max(0, U.easeOutBack(pk, f.bounce));
+        const squash = 1 - pk; // a touch wider than tall while it lands
         const x = f.x + f.vx * k;
-        const y = f.y - f.rise * U.easeOutCubic(k) + 30 * k * k; // rise, then fall on an arc
-        ctx.globalAlpha = k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1;
-        ctx.font = `900 ${Math.round(f.size * pop)}px ${FX.FONT}`;
+        const y = f.y - f.rise * U.easeOutCubic(k);
+        ctx.globalAlpha = k > 0.6 ? 1 - (k - 0.6) / 0.4 : 1;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(pop * (1 + 0.18 * squash), pop * (1 - 0.12 * squash));
+        ctx.font = `900 ${f.size}px ${FX.FONT}`;
         ctx.lineWidth = 4;
         ctx.strokeStyle = '#1a1020';
-        ctx.strokeText(f.str, x, y);
+        ctx.strokeText(f.str, 0, 0);
         ctx.fillStyle = f.color;
-        ctx.fillText(f.str, x, y);
+        ctx.fillText(f.str, 0, 0);
+        ctx.restore();
       }
       ctx.globalAlpha = 1;
     },

@@ -32,7 +32,7 @@
     o.start(t); o.stop(t + dur + 0.02);
   }
 
-  function noise(dur, { vol = 0.12, delay = 0 } = {}) {
+  function noise(dur, { vol = 0.12, delay = 0, lowpass = 0 } = {}) {
     const a = ctx();
     if (!a) return;
     const len = Math.floor(a.sampleRate * dur);
@@ -42,23 +42,42 @@
     const src = a.createBufferSource(), g = a.createGain();
     src.buffer = buf;
     g.gain.value = vol;
-    src.connect(g); g.connect(a.destination);
+    let out = src;
+    if (lowpass) {
+      const f = a.createBiquadFilter();
+      f.type = 'lowpass';
+      f.frequency.value = lowpass;
+      src.connect(f);
+      out = f;
+    }
+    out.connect(g); g.connect(a.destination);
     src.start(a.currentTime + delay);
+  }
+
+  /** Line-clear impact: a sine kick dropping in pitch plus a muffled crunch. */
+  function thump(power) {
+    tone(150 + 20 * power, 0.16, { type: 'sine', slide: -110, vol: 0.18 + 0.04 * power });
+    noise(0.07 + 0.02 * power, { vol: 0.16 + 0.03 * power, lowpass: 1400 + 500 * power });
   }
 
   const SFX = {
     unlock() { ctx(); },
     setEnabled(v) { enabled = !!v; },
     get enabled() { return enabled; },
-    play(name, n = 1) {
+    /** n = lines (for 'clear'), combo = current combo (raises the chime 2 semitones per step). */
+    play(name, n = 1, combo = 1) {
       if (!enabled) return;
       switch (name) {
         case 'pick': tone(520, 0.05, { vol: 0.04 }); break;
         case 'place': tone(180, 0.08, { type: 'triangle', vol: 0.12, slide: -60 }); break;
         case 'bad': tone(140, 0.12, { vol: 0.05 }); break;
-        case 'clear':
-          for (let i = 0; i < Math.min(4, n); i++) tone(440 * Math.pow(1.26, i), 0.12, { type: 'triangle', vol: 0.09, delay: i * 0.05 });
+        case 'clear': {
+          const up = Math.pow(2, (2 * Math.min(8, Math.max(0, combo - 1))) / 12);
+          thump(Math.min(4, n) + Math.min(3, combo - 1) * 0.5);
+          for (let i = 0; i < Math.min(4, n); i++) tone(440 * up * Math.pow(1.26, i), 0.12, { type: 'triangle', vol: 0.09, delay: 0.03 + i * 0.05 });
+          if (combo >= 2) tone(1320 * up, 0.09, { type: 'square', vol: 0.03, delay: 0.03 + Math.min(4, n) * 0.05 });
           break;
+        }
         case 'hit': noise(0.08, { vol: 0.15 }); tone(220, 0.08, { slide: -120, vol: 0.06 }); break;
         case 'crit': noise(0.12, { vol: 0.2 }); tone(660, 0.1, { slide: -300, vol: 0.07 }); break;
         case 'hurt': noise(0.18, { vol: 0.2 }); tone(120, 0.2, { type: 'sawtooth', slide: -60, vol: 0.08 }); break;

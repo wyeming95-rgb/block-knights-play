@@ -11,19 +11,20 @@
  *   - To swap backends: GameStorage.useBackend(myAdapter) before init().
  */
 (() => {
-  const KEY = 'blockknights.save.v1';
+  const KEY = 'blockknights.save.v1'; // key kept across versions so old saves are found
+  const VERSION = 2;                  // v2: four story starters replace knight/mage/rogue
   const START_FRAGMENTS = 50; // enough for one summon so the screen is never a dead end
 
   function defaultData() {
     const roster = {};
     for (const id of window.DATA.STARTERS) roster[id] = { awaken: 0 };
     return {
-      version: 1,
+      version: VERSION,
       fragments: START_FRAGMENTS,
       levels: {},             // { [levelId]: { stars, cleared, plays, bestTurns } }
       unlocked: 1,            // highest unlocked level id
       roster,                 // { [charId]: { awaken } }
-      team: window.DATA.STARTERS.slice(),
+      team: window.DATA.DEFAULT_TEAM.slice(),
       gacha: { pulls: 0, sinceLegendary: 0 },
       settings: { sound: true },
     };
@@ -51,7 +52,15 @@
 
   const int = (v, min = 0) => Math.max(min, Math.floor(Number(v) || 0));
 
-  /** Merge loaded data over defaults so older/partial saves stay valid. */
+  /** v1 hero ids map onto their replacements; current ids pass through. */
+  const migrateId = id => window.DATA.LEGACY_IDS[id] || id;
+
+  /**
+   * Merge loaded data over defaults so older/partial saves stay valid. v1 saves are
+   * migrated in place: knight->calder, mage->ione, rogue->neris, witch->hesla, keeping
+   * the higher awaken level if two old ids land on one hero. Every starter stays owned
+   * because the defaults already include them.
+   */
   function normalize(raw) {
     const d = defaultData();
     if (!raw || typeof raw !== 'object') return d;
@@ -59,12 +68,15 @@
     if (raw.levels && typeof raw.levels === 'object') d.levels = raw.levels;
     d.unlocked = int(raw.unlocked, 1);
     if (raw.roster && typeof raw.roster === 'object') {
-      for (const [id, v] of Object.entries(raw.roster)) {
-        if (window.DATA.CHARACTERS[id]) d.roster[id] = { awaken: int(v && v.awaken) };
+      for (const [oldId, v] of Object.entries(raw.roster)) {
+        const id = migrateId(oldId);
+        if (!window.DATA.CHARACTERS[id]) continue;
+        const prev = d.roster[id] ? d.roster[id].awaken : 0;
+        d.roster[id] = { awaken: Math.max(prev, int(v && v.awaken)) };
       }
     }
     if (Array.isArray(raw.team)) {
-      const team = raw.team.filter(id => d.roster[id]).slice(0, 3);
+      const team = [...new Set(raw.team.map(migrateId))].filter(id => d.roster[id]).slice(0, 3);
       if (team.length >= 2) d.team = team;
     }
     if (raw.gacha && typeof raw.gacha === 'object') {
@@ -93,7 +105,10 @@
         data = defaultData();
         ready = Promise.resolve(backend.load())
           .catch(() => null)
-          .then(raw => { data = normalize(raw); });
+          .then(raw => {
+            data = normalize(raw);
+            if (raw && raw.version !== VERSION) persist(); // write the migrated save back once
+          });
       }
       return ready;
     },

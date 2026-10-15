@@ -34,7 +34,12 @@
     const add = (...a) => P.push(a);
     // things behind the body
     if (L.weapon === 'spear') { add(16, 1, 1, 21, WOOD); add(15, 1, 3, 2, METAL); }
-    if (L.shield) { add(3, 11, 4, 7, L.trim); add(4, 13, 2, 2, L.body); }
+    if (L.frame) { // Calder's portable 8x8 strapped to his back
+      add(0, 3, 7, 10, '#4a4440'); add(1, 4, 5, 8, '#2a2622', 1);
+      add(3, 4, 1, 8, '#4a4440', 1); add(1, 7, 5, 1, '#4a4440', 1);
+    }
+    if (L.shield === 'panel') { add(2, 10, 5, 9, L.trim); add(3, 11, 3, 7, '#6a4a30'); add(3, 13, 3, 1, '#4a3420', 1); }
+    else if (L.shield) { add(3, 11, 4, 7, L.trim); add(4, 13, 2, 2, L.body); }
     add(6, 12, 1, 5, L.body);                            // back arm
     add(8, 17, 2, 5, '#3a3040'); add(11, 17, 2, 5, '#3a3040'); // legs
     add(8, 21, 2, 1, INK, 1); add(11, 21, 2, 1, INK, 1);       // boots
@@ -57,6 +62,12 @@
         add(5, 5, 12, 1, '#2a4a70'); add(8, 2, 6, 3, '#2a4a70'); add(7, 1, 2, 1, '#2a4a70'); add(8, 6, 1, 4, L.hair); break;
       case 'horns':
         add(7, 4, 8, 4, L.body); add(6, 1, 1, 4, L.trim); add(15, 1, 1, 4, L.trim); add(11, 7, 3, 1, INK, 1); break;
+      case 'goggles':
+        add(8, 3, 6, 3, L.hair); add(8, 6, 1, 4, L.hair); add(9, 4, 5, 1, '#6a4a30', 1); add(12, 3, 2, 2, '#ffd080', 1); break;
+      case 'pinned':
+        add(8, 4, 6, 2, L.hair); add(7, 5, 2, 3, L.hair); add(9, 10, 4, 1, L.trim, 1); break;
+      case 'knot':
+        add(8, 4, 6, 2, L.hair); add(8, 6, 1, 2, L.hair); add(6, 4, 2, 2, L.hair); break;
       default:
         add(8, 4, 6, 2, L.hair); break;
     }
@@ -67,6 +78,7 @@
       case 'dagger': add(16, 10, 1, 5, METAL); add(15, 14, 3, 1, WOOD); break;
       case 'mace': add(16, 9, 1, 8, WOOD); add(15, 6, 3, 3, '#d0d0d8'); break;
       case 'bow': add(17, 6, 1, 12, '#8a5a2a'); add(16, 5, 1, 1, '#8a5a2a'); add(16, 18, 1, 1, '#8a5a2a'); add(18, 7, 1, 10, '#e8e8e8', 1); break;
+      case 'rule': add(16, 7, 2, 9, '#6a7480'); add(16, 9, 2, 1, L.trim, 1); break;
       default: break;
     }
     return build(22, 24, P);
@@ -136,7 +148,7 @@
       const k = 'hero:' + id;
       if (!cache[k]) {
         const def = DATA.CHARACTERS[id];
-        cache[k] = humanoid(def.look, DATA.ELEMENTS[def.element].color);
+        cache[k] = humanoid(def.look, DATA.elem(def.element).color);
       }
       return cache[k];
     },
@@ -164,6 +176,32 @@
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(s.img, 4, 0, 14, 14, x, y, size, size);
       ctx.restore();
+    },
+
+    /**
+     * Menu art for a hero: the full portrait as an <img> when the hero has one (plain
+     * <img> loads fine from file://), else the pixel sprite canvas. A portrait that
+     * fails to load swaps itself for the sprite.
+     */
+    heroArt(id, scale = 3, cls = '') {
+      const def = DATA.CHARACTERS[id];
+      if (!def.portrait) {
+        const c = this.heroCanvas(id, scale);
+        if (cls) c.classList.add(cls);
+        return c;
+      }
+      const img = document.createElement('img');
+      img.className = 'portrait' + (cls ? ' ' + cls : '');
+      img.alt = def.name;
+      img.decoding = 'async';
+      img.draggable = false;
+      img.onerror = () => {
+        const c = this.heroCanvas(id, scale);
+        if (cls) c.classList.add(cls);
+        img.replaceWith(c);
+      };
+      img.src = def.portrait;
+      return img;
     },
 
     /** A standalone canvas element (for HTML menus). */
