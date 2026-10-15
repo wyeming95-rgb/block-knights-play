@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Chapter 1 story scenes ("The Quiet Seats", Ashen Fields). Pure data, exposed as
+ * Chapter 1 story scenes (Ashen Fields, the road to Wyrm Summit). Pure data, exposed as
  * window.STORY; js/dialogue.js plays them, js/menu.js decides when.
  *
  * Scene: { id, title, levelIndex, when, lines }
@@ -9,9 +9,10 @@
  *   lines       [{ speaker, text }]; speaker is a SPEAKERS key, or null for narration
  * Several scenes may share a level + when; they play in array order.
  *
- * Canon notes: the company's bonds stay on the story-draft clock (Ione arrives at the
- * end of the forest, Hesla opposes until the refused clear). Scenes never mention who
- * is on the battle team. Twist A (the blocks are people) is held back until the Wyrm.
+ * Canon notes: Ione meets the group after Goblin Ford. Hesla opposes them until Calder
+ * refuses to break a warm stone. Scenes never mention who is on the battle team.
+ * Rune stones are people sealed by Solenne Vey. That stays a hint (Orrin's name, warm
+ * stones, a voice in a wall) until the Wyrm falls.
  */
 (() => {
   // portrait: art shown in the speech UI. Without one: silhouette (named characters) or name only.
@@ -24,10 +25,10 @@
     bram:     { name: 'Bram', silhouette: '#3a5a6a', voice: 165 },
     solenne:  { name: 'Solenne Vey', silhouette: '#6a1a2a', voice: 190 },
     ferryman: { name: 'Ferryman', voice: 180 },
-    scrapper: { name: 'Masked scrapper', voice: 200 },
+    mara:     { name: 'Mara', voice: 235 },
     revenant: { name: 'Ashen Revenant', voice: 120 },
-    wyrmA:    { name: 'A pale mouth', voice: 280 },
-    wyrmB:    { name: 'A dull mouth', voice: 110 },
+    wyrmA:    { name: 'A soft voice', voice: 280 },
+    wyrmB:    { name: 'A bitter voice', voice: 110 },
   };
 
   const L = (speaker, text) => ({ speaker, text });
@@ -35,154 +36,166 @@
 
   const SCENES = [
     // ---------------------------------------------------------------- forest (levels 1–3)
-    { id: 'season-book', title: 'The Season Book', levelIndex: 0, when: 'before', lines: [
-      N('Far above the Fields, in a room that never gets cold, a pen scratches.'),
-      L('solenne', 'Thirty winters. The same line at the foot of every page.'),
-      L('solenne', 'The ward is standing. The fever has not come back. The Fields are pulling loose, as I knew they would.'),
-      L('solenne', 'There is a salvage cutter on the Ashen road. Let him cut. A guilty man keeps the work tidy.'),
-      L('solenne', 'Ivo seated. Replace him this season.'),
+    { id: 'season-book', title: 'The Ashen Fields', levelIndex: 0, when: 'before', lines: [
+      N('The Ashen Fields run on rune stones: magic blocks, stacked into walls, bridges, and seals.'),
+      N('Calder Voss is a stonecutter. He fits the stones, and he breaks away any row that turns black with rot.'),
+      N('This year the rot is faster than he is. Monsters crawl from the cracks, and people vanish in the night.'),
+      N('The elder sends Calder north, to find where the rot begins. Neris Cade, the healer, will not let him go alone.'),
+      N('Above the clouds, Solenne Vey writes in her tower. She built the great seals. This rot is her doing.'),
+      L('solenne', 'A stonecutter and a healer, walking north to save the Fields. Let them. I am not finished.'),
+      L('solenne', 'The miller\'s boy, Orrin, from Hollow Mill. He should already be on the road to me.'),
     ] },
-    { id: 'ashen-road', title: 'The Ashen Road', levelIndex: 0, when: 'before', lines: [
-      L('neris', 'Your frame sits high on the left. Sorry. Fix it, or I fix it while you walk.'),
-      L('calder', 'It sits how it sits.'),
-      L('neris', 'Then it sits wrong. The works did not send me out here to watch you limp to a porch.'),
-      L('calder', 'They sent you so I am not alone at one. I read the wording.'),
-      L('neris', 'Good. Slimes in the furrow. Animals in a bad grid, nothing more. Clear lines, do not chase them.'),
-      L('calder', 'Cold stock only. If a brick is warm, we wait.'),
+    { id: 'ashen-road', title: 'Setting Out', levelIndex: 0, when: 'before', lines: [
+      L('neris', 'Calder. You were going to leave before dawn and not say a word.'),
+      L('calder', 'The north road is full of monsters. I didn\'t want you hurt.'),
+      L('neris', 'I\'m the village healer, and I carry a shield so I can stand in front of people. That includes you.'),
+      L('calder', 'The elder wants the source of the rot. The signs lead to Wyrm Summit.'),
+      L('neris', 'Then we walk it together. Someone has to bring you home.'),
+      L('calder', 'Slimes are spilling out of the broken gate. We clear them, then take the forest road.'),
     ] },
-    { id: 'soot', title: 'Soot', levelIndex: 0, when: 'after', lines: [
-      N('The cleared line goes to ash. For a breath, the ash says a name. "Orrin."'),
-      L('calder', 'Who is Orrin?'),
-      L('bram', 'Nobody on my roll. Soot in the cracks. The Fields have been muttering since the burn.'),
-      L('neris', 'You are the militia medic. Holt.'),
-      L('bram', 'And you are the brace they sent with the cutter. We have both read the posting. How nice for us.'),
-      L('calder', 'Sorry. I put weight on you.'),
-      L('bram', 'He apologizes to bricks. Someone write that down. Not me. I am out of paper.'),
+    { id: 'soot', title: 'A Name in the Ash', levelIndex: 0, when: 'after', lines: [
+      N('The last slime crumbles to ash. For a breath, the ash whispers a name: "Orrin."'),
+      L('calder', 'Did you hear that? The dust just spoke.'),
+      N('An older man comes through the gate. Bram, a retired soldier, is Calder\'s oldest friend.'),
+      L('bram', 'I heard it. Orrin is the miller\'s boy at Hollow Mill. He has been missing three nights.'),
+      L('neris', 'Stones don\'t talk, Bram. Wind does, and wind likes a scare.'),
+      L('bram', 'Maybe. Dusk Thicket is next. Bats in the dead trees. I\'ll get you through.'),
     ] },
-    { id: 'toll', title: 'Goblin Ford', levelIndex: 2, when: 'before', lines: [
-      L('scrapper', 'Toll. The sack eats if you don\'t.'),
-      L('neris', 'The masks are cloth, Calder. Those are people.'),
-      L('calder', 'Then we break the line, not them. Drive them off the ford.'),
+    { id: 'toll', title: 'The Ford', levelIndex: 2, when: 'before', lines: [
+      N('Past the thicket, the only ford is in goblin hands. They rob everyone who tries to cross.'),
+      L('bram', 'Goblins stay in the hills. The rot pushed them down. Look at them. Half starved.'),
+      L('neris', 'Then we drive them off the crossing, and no further. They\'re hungry. This isn\'t a war.'),
+      L('calder', 'We break their line, we cross, and we keep north. That\'s the job.'),
     ] },
-    { id: 'flour', title: 'Flour, Not a Hoard', levelIndex: 2, when: 'after', lines: [
-      N('The scrappers scatter into the reeds. One runner gets clear with nothing in his hands. The sack they dropped is heavy.'),
-      L('neris', 'It is flour. They were feeding a camp.'),
-      L('bram', 'Toll paid in full, then. I will take my change in bread.'),
-      L('calder', 'Leave half on the stone. They will come back for it.'),
+    { id: 'flour', title: 'The Warm Stone', levelIndex: 2, when: 'after', lines: [
+      N('The goblins scatter and drop a sack of rune stones, pried out of someone\'s wall.'),
+      L('neris', 'Why would goblins steal stones?'),
+      L('calder', 'Hold on. This one is warm. Finished rune stones are cold, Neris. Always.'),
+      L('neris', 'It feels like a living hand. I want to put it down, and I don\'t.'),
+      L('bram', 'Then put it down. We don\'t break a warm stone. Not until we understand it.'),
+      L('bram', 'The fortress ruins are next. If the stones there are warm, we go in careful.'),
     ] },
-    { id: 'auditor', title: 'The Auditor', levelIndex: 2, when: 'after', lines: [
-      N('Where the trees thin, a woman in guild gloves is waiting on the road with a satchel of forms.'),
-      L('ione', 'Calder Voss? Ione Pell, licensed spark-mason. The guild sent me to audit your frame.'),
-      L('calder', 'Audit it for what.'),
-      L('ione', 'Irregularities. Unlogged cuts. A malpractice name on file. Step one, I watch. Step two, I write it down.'),
-      L('ione', 'Step three, please do not watch me write. I lose numbers when I am perceived.'),
-      L('bram', 'An auditor. And I thought this road was short on paperwork.'),
+    { id: 'auditor', title: 'The Fire Mage', levelIndex: 2, when: 'after', lines: [
+      N('On the far bank, a woman in a red coat waits, a small flame turning over her palm.'),
+      L('ione', 'Finally. You\'re the stonecutter? I\'ve been here since breakfast, and I hate mornings.'),
+      L('calder', 'Calder Voss. And you are?'),
+      L('ione', 'Ione Pell. Fire mage, Mages\' Guild. They sent me to learn why the stones fail. Lucky me.'),
+      L('ione', 'The ruins ahead hold an old seal, and it\'s cracking. Fire won\'t fit a new stone. You will.'),
+      L('neris', 'So you need us.'),
+      L('ione', 'I need a stonecutter. The rest of you may come. Try to be a pleasant surprise.'),
     ] },
 
     // ---------------------------------------------------------------- ruins (levels 4–6)
-    { id: 'cure-time', title: 'Cure Time', levelIndex: 3, when: 'before', lines: [
-      N('Past the trees the road runs over old masonry. Frost on every stone but one course, which is warm.'),
-      L('calder', 'That course is warm. We do not spend it. We seal it.'),
-      L('ione', 'A quiet-seal. No strike. The turns are cure-time. Step one, count them. Step two, I am not lighting anything.'),
-      L('neris', 'And if the turns run out, the course shears. I would rather not find out what is under it.'),
+    { id: 'cure-time', title: 'The Cracking Seal', levelIndex: 3, when: 'before', lines: [
+      N('The fortress is a ruin. In the court stands a seal: a wall of rune stones. One row is warm.'),
+      L('ione', 'Rot is packed under this court. If the seal splits, it runs into every wall downhill.'),
+      L('calder', 'Then I clear the cracked rows and fit new stone. I won\'t touch the warm row.'),
+      L('neris', 'How long do we have?'),
+      L('ione', 'Not long enough for a debate. Fewer questions. More stonework.'),
     ] },
-    { id: 'shifting-weight', title: 'Glass, or Weight', levelIndex: 3, when: 'after', lines: [
-      L('ione', 'It held. Did you hear the sound it made, right at the end?'),
-      L('calder', 'Settling.'),
-      L('ione', 'Glass settles with a tick. That was slower. Like someone shifting their weight.'),
-      L('neris', 'Stone does not carry weight. It is the weight.'),
-      L('ione', 'Yes. I am going to write "settling." Then I am going to underline it twice and not know why.'),
+    { id: 'shifting-weight', title: 'A Sleeper in the Wall', levelIndex: 3, when: 'after', lines: [
+      L('ione', 'It\'s holding. Good. Tell me you heard that sound at the end.'),
+      L('calder', 'The stones, settling.'),
+      L('ione', 'Settling clicks. That was slower. Like someone turning over in their sleep.'),
+      L('neris', 'Don\'t say that in a ruin, Ione. Some of us want to sleep later.'),
+      L('ione', 'I\'m a scholar. True things, said at the worst time. It\'s a calling.'),
+      L('bram', 'Out. Ember Cloister is next, full of fire-wisps. The wayhouse is past it, if it still stands.'),
     ] },
-    { id: 'wayhouse', title: 'The Wayhouse', levelIndex: 5, when: 'before', lines: [
-      L('bram', 'Three inside. A carter, his sister, an old man. Pinned under the east beam. Wolves denning in the cellar, because of course they are.'),
-      L('calder', 'I clear the footing. You pull them out.'),
-      L('neris', 'Test the bricks first. All of them.'),
-      L('calder', 'There is no time to test all of them.'),
-      L('neris', '...Then test the ones you can.'),
+    { id: 'wayhouse', title: 'Wolves at the Door', levelIndex: 5, when: 'before', lines: [
+      N('At dusk they reach the wayhouse. Wolves circle the inn, and the rune-stone wall has caved in.'),
+      L('bram', 'I hear people inside, trapped under the fallen wall.'),
+      L('calder', 'I\'ll cut a path through. Get them out. I\'ll keep the wolves back.'),
+      L('neris', 'Test the stones first. A warm one, like the stone at the ford, stays whole.'),
+      L('calder', 'There\'s no time to test every stone.'),
+      L('neris', 'Then test the ones you can. Please.'),
     ] },
-    { id: 'three', title: 'Three', levelIndex: 5, when: 'after', lines: [
-      N('The line clears. The beam drops an inch, then all the way. One brick in the footing had been warm. Nobody tested it.'),
-      L('neris', 'Three. I counted three on that porch. I am still counting three.'),
-      L('calder', 'I rushed it.'),
-      L('bram', 'You did. I let you.'),
-      L('bram', 'Pass the lamp. I am writing their names, and nobody talks while I do it.'),
-      N('Nobody does.'),
+    { id: 'three', title: 'Tam\'s Voice', levelIndex: 5, when: 'after', lines: [
+      N('The wolves run. The travelers get out. One stone Calder broke was warm, and it cried out.'),
+      L('neris', 'Three people, all alive. Calder, that cry was a man.'),
+      L('calder', 'I rushed. I didn\'t test it. I heard him too late.'),
+      N('Mara, one of the travelers, goes white and stares at the shards.'),
+      L('mara', 'That was Tam. My brother. He vanished on this road last winter. I know his voice.'),
+      L('bram', 'Orrin whispered at the gate. Tam cried in the wall. I\'m writing both names.'),
+      L('neris', 'The road north starts at a frozen ferry. We leave at dawn, and we test every stone.'),
     ] },
 
     // ---------------------------------------------------------------- snow (levels 7–9)
-    { id: 'hospital-rule', title: 'A Rule, Unthanked', levelIndex: 6, when: 'before', lines: [
-      N('Snow at the foot of the climb. A woman in a dark coat stands at the ferry rope as if she owns it.'),
-      L('hesla', 'You are the cutter from the Wayhouse.'),
-      L('calder', 'Yes.'),
-      L('hesla', 'Hesla Venn. I am not here to help you. I am here to give you the rule nobody taught you, because it is cheaper than the next three.'),
-      L('hesla', 'If the stone is warm, you do not clear it. You will drop a hospital.'),
-      L('neris', 'There is no hospital in the Fields.'),
-      L('hesla', 'No. Not in the Fields. Turn back at the ferry. If you climb, I will stop you myself.'),
+    { id: 'hospital-rule', title: 'The Frost Witch', levelIndex: 6, when: 'before', lines: [
+      N('Snow covers the climb. A pale woman in a dark coat stands on the frozen ferry and blocks the boat.'),
+      L('hesla', 'You broke a warm stone at the wayhouse. I heard it cry from across the valley.'),
+      L('calder', 'Who are you?'),
+      L('hesla', 'Hesla Venn. The frost witch, if you need a title. I am not here to help you.'),
+      L('hesla', 'If a stone is warm, you do not break it. You felt why. Turn around and go home.'),
+      L('ione', 'The rot is pouring off the summit. We are going up there to stop it.'),
+      L('hesla', 'I know what sleeps on that summit. Smash your way up and you kill more than a beast.'),
+      N('She lifts a hand. The river ice rises into a giant golem and steps onto the bank.'),
     ] },
-    { id: 'double-fare', title: 'Double Fare', levelIndex: 6, when: 'after', lines: [
-      L('ferryman', 'Double fare for the tall one. Boat sits low with you in it, friend. You eat like two men.'),
-      L('calder', 'I eat what everyone eats.'),
-      L('bram', 'He does. I have watched. It was not inspiring.'),
-      N('That night Bram writes in his book by the fire. Slow pulse. Heavy step. Too slow for the blood on him.'),
-      L('neris', 'Is that about him?'),
-      L('bram', 'It is a chart. Charts don\'t get promotions. Go to sleep.'),
+    { id: 'double-fare', title: 'Across the River', levelIndex: 6, when: 'after', lines: [
+      N('The golem shatters. Hesla is gone. A line of frost leads up toward the shrine.'),
+      L('ferryman', 'You broke the witch\'s golem? Ha. In the boat. I\'ll cross you before she thinks again.'),
+      L('neris', 'Do you know Hesla?'),
+      L('ferryman', 'She came out of the north years back. Apprentice to Solenne Vey, they say, until she ran.'),
+      L('bram', 'Solenne Vey. She designed the great seals. Her name is cut into stones all over the Fields.'),
+      L('ferryman', 'Watch the shrine across the river. Rot has the stones. Clear it, or the pass stays shut.'),
     ] },
-    { id: 'memorial', title: 'The Memorial Stone', levelIndex: 7, when: 'before', lines: [
-      N('A burn memorial at the switchback. Old names in old chisel. At the bottom, newer and sharper: CALDER VOSS, VOSS WARD WORKS.'),
-      L('neris', 'That is you.'),
-      L('calder', 'A cousin. The name is common in the ward.'),
-      L('neris', 'It is not. I have chalked every porch in that ward.'),
-      L('calder', 'The stain on the next course is spreading. Can we seal it. Please.'),
-      L('ione', 'Corruption stains its neighbours. Clear a line through it or beside it. I will count.'),
+    { id: 'memorial', title: 'The Shrine of Names', levelIndex: 7, when: 'before', lines: [
+      N('The shrine is a wall of carved names. Black rot creeps from letter to letter.'),
+      L('ione', 'Leave that rot and it jumps to every stone it touches, until the shrine comes down.'),
+      L('calder', 'I\'ll cut a line through it. Call out if a stone is warm. I won\'t repeat the wayhouse.'),
+      L('neris', 'These names are the missing. Calder, look how many. Some were carved this month.'),
+      L('bram', 'The chisel is still sharp. Someone is adding names as fast as people disappear.'),
     ] },
-    { id: 'oath', title: 'One Back Under the Beam', levelIndex: 7, when: 'after', lines: [
-      N('Under the frost, a gate stone worn soft by hands: ONE BACK UNDER THE BEAM, THEN WE ALL STAND. QUILL.'),
-      L('ione', 'The old mason-oath. It is on the recruiting posters. Block Knights.'),
-      L('neris', 'The posters stop after the first half. I never saw the rest.'),
-      L('calder', '"Then we all stand." Someone cut that part off.'),
-      N('Beside it in the snow, a charity token, half melted. STAYS FEVER WARD. The date is thirty years old.'),
+    { id: 'oath', title: 'Carved on the Inside', levelIndex: 7, when: 'after', lines: [
+      N('The rot fades. One stone splits. Inside, where no chisel could reach, a name is carved.'),
+      L('calder', 'Orrin. The name from the ash, back at Ashwood Gate.'),
+      L('ione', 'These stones are cut solid. No one can carve the inside of one. It isn\'t possible.'),
+      L('neris', 'Unless the name was in there before it became a stone.'),
+      L('ione', 'I am going to pretend you did not say that until we are out of the snow.'),
+      L('calder', 'Hesla\'s tracks go up Cinder Pass. She knows what this means. We follow.'),
     ] },
     { id: 'apology', title: 'Sorry, I Was Holding', levelIndex: 8, when: 'before', lines: [
-      L('revenant', 'Sorry. I was holding.'),
-      L('neris', 'It apologized. Calder, it apologized.'),
-      L('calder', 'So do I. It never stops the wall coming down. Cut it clean.'),
+      N('Cinder Pass is the last road to the summit. The Ashen Revenant blocks the path, a body of ash and stone.'),
+      L('revenant', 'Sorry. I was holding the wall. I can\'t hold it any longer.'),
+      L('neris', 'It\'s talking, Calder. That is a person, not a monster.'),
+      L('calder', 'I hear it. It\'s still coming at us. Stay behind me.'),
+      L('ione', 'We can be sorry later. If we die here, we don\'t get a later.'),
     ] },
-    { id: 'refused-clear', title: 'The Refused Clear', levelIndex: 8, when: 'after', lines: [
-      N('Below the summit a full course lies across the path. One clear would open the way. The stone is warm, and it is murmuring.'),
-      L('ione', 'One line and we are through. Step one... I do not have a step one for this.'),
-      L('calder', 'That brick is warm. We wait.'),
-      L('hesla', 'You will wait until the Wyrm comes down the slope and spends you all.'),
-      L('calder', 'Then show us the other way. You know one. You have watched us not know it for three days.'),
-      N('Hesla looks at the frame for a long time. Then she puts her hands on it.'),
-      L('hesla', 'Quiet-seal. Hold the cure, do not spend it. Watch my hands, not my face. Teaching it does not make me your friend.'),
+    { id: 'refused-clear', title: 'The Warm Wall', levelIndex: 8, when: 'after', lines: [
+      N('Above the pass, rune stones wall off the summit road. One is warm, and it murmurs.'),
+      L('ione', 'One row and the road opens. I hate that I want you to refuse.'),
+      L('calder', 'No. That stone is warm. I\'m not breaking another. Not after Tam.'),
+      L('hesla', 'Then the wayhouse taught you. Good. Most cutters do not stop.'),
+      L('neris', 'You tried to stop us at the ferry. Why help us now?'),
+      L('hesla', 'Because you stopped. A warm stone can be calmed and left whole. I will show you.'),
+      L('hesla', 'Do not call it friendship. The thing on the summit will not offer you a kind choice.'),
     ] },
 
     // ---------------------------------------------------------------- summit (level 10)
-    { id: 'braid', title: 'The Braid', levelIndex: 9, when: 'before', lines: [
-      N('At the summit the blight is not a beast. It is a braid of cinders as long as the frame, and every part of it has a mouth.'),
-      L('bram', 'That is the beast? I have filed bigger complaints.'),
-      L('hesla', 'Spare the warm segments if you can. You will not always be able to. Choose anyway.'),
-      L('neris', 'Two hands on the panel. Whatever it throws, I have the hit.'),
-      L('calder', 'Cold lines first. Then whatever is left.'),
+    { id: 'braid', title: 'The Blight Wyrm', levelIndex: 9, when: 'before', lines: [
+      N('The Blight Wyrm coils on the summit, a serpent of black stone. Each breath pushes the rot downhill.'),
+      L('bram', 'So that\'s what has been poisoning the Fields.'),
+      L('hesla', 'Warm stones are set in its body. Spare them if you can. You will not always manage it.'),
+      L('neris', 'My shield stays up. If it hits anyone, it hits me first.'),
+      L('ione', 'Very moving. Point me at the cold parts. Those, I can burn.'),
+      L('calder', 'Cold stone first. Warm stone only if we have no choice. We finish it here.'),
     ] },
-    { id: 'two-voices', title: 'Two Voices', levelIndex: 9, when: 'after', lines: [
-      N('The braid comes apart. Two of its mouths speak as it goes, in two different voices.'),
-      L('wyrmA', 'Thank you.'),
-      L('wyrmB', 'You dropped us.'),
-      L('neris', 'That was two people. Calder. That was two people.'),
-      L('hesla', 'It always was. Seats, not stone. A person, folded under load until they hold weight. The Masonry is made of them.'),
-      L('ione', 'I certified courses as relic stone. "Remembers pressure." I signed that. Dozens of times.'),
-      L('calder', 'Every line I have cleared.'),
-      L('hesla', 'Cinders are already gone. An echo, a name, then ash. Warm stone is not gone yet. That is the whole rule. That is why it exists.'),
+    { id: 'two-voices', title: 'People, Not Stone', levelIndex: 9, when: 'after', lines: [
+      N('The Wyrm breaks apart. Voices rise from the falling stones. Two of them speak clearly.'),
+      L('wyrmA', 'Thank you. It\'s over. Please don\'t put me back.'),
+      L('wyrmB', 'Why did you break us? We were still in here.'),
+      L('neris', 'Those were people. Calder, the stones were people.'),
+      L('hesla', 'They always were. Solenne Vey seals a living person inside every rune stone.'),
+      L('calder', 'Orrin. Tam. The shrine. All the missing. She took them, and the land is built from them.'),
+      L('ione', 'The Guild swore it was enchanted rock. I signed that. I have been burning people.'),
+      L('hesla', 'Cold stone is a voice, then ash. Already gone. Warm stone is still alive. Remember that.'),
     ] },
-    { id: 'load-arrows', title: 'Load Arrows', levelIndex: 9, when: 'after', lines: [
-      N('In the militia hut below the summit, a chalk map: load arrows drawn out of the Fields, every one pointing toward the Spires.'),
-      L('bram', 'Dated six years back. The year of the burn.'),
-      N('Bram does not make a joke. Nobody asks him to.'),
-      L('hesla', 'That tick in the corner is an Archwright\'s mark. I learned to make it from her. Solenne Vey.'),
-      L('calder', 'She drained the Fields to hold something up.'),
-      L('hesla', 'Someone.'),
-      L('neris', 'Have you eaten? It is a long way to the Spires. Hunger is a different weight, and I will not lift you wrong.'),
+    { id: 'load-arrows', title: 'North to the Spires', levelIndex: 9, when: 'after', lines: [
+      N('In a hut below the summit, Bram finds a map. Arrows run north out of every village.'),
+      L('bram', 'Every arrow ends at the Spires, the city of towers. The oldest mark is six years back.'),
+      L('hesla', 'I was her apprentice in the Spires. I ran the day I learned a stone can be a person.'),
+      L('hesla', 'She is there now, sealing thousands of people into the towers. She will not stop.'),
+      L('calder', 'Then the Spires are next. We stop her, and we bring out everyone still alive in the stone.'),
+      L('neris', 'Eat before you promise the world. It\'s a long road, and I won\'t carry you if you faint.'),
     ] },
   ];
 
