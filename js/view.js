@@ -240,9 +240,8 @@
           FX.after(start + 0.14, () => {
             const pc = this.partyCenter();
             if (d.blocked) {
-              const col = d.brace ? '#fff1a8' : '#7fc8ff';
-              FX.text(pc.x, pc.y - 20, d.brace ? 'BRACED' : 'BLOCKED', { color: col, size: 24 });
-              FX.burst(pc.x + 40, pc.y, col, 18, { speed: 220, dir: Math.PI, spread: 1.6, size: 5 });
+              FX.text(pc.x, pc.y - 20, 'BLOCKED', { color: '#7fc8ff', size: 24 });
+              FX.burst(pc.x + 40, pc.y, '#7fc8ff', 18, { speed: 220, dir: Math.PI, spread: 1.6, size: 5 });
               FX.addShake(4);
               SFX.play('block');
               return;
@@ -250,6 +249,11 @@
             this.hitBar(this.partyBar, d.hp);
             this.members.forEach(m => { m.flash = FX.t + 0.1; });
             FX.text(pc.x, pc.y - 20, `-${d.dmg}`, { color: '#ff5a5a', size: 26 + Math.min(14, d.dmg / 2) });
+            if (d.brace) {
+              // Neris halved it: tag the number and spark gold where the hit landed
+              FX.text(pc.x, pc.y - 46, 'BRACED', { color: '#fff1a8', size: 16 });
+              FX.burst(pc.x + 40, pc.y, '#fff1a8', 12, { speed: 200, dir: Math.PI, spread: 1.6, size: 4 });
+            }
             FX.burst(pc.x + 30, pc.y, '#ff5a5a', 14, { speed: 220, dir: Math.PI, spread: 1.4, size: 5 });
             FX.addShake(10);
             FX.stop(0.07);
@@ -585,11 +589,11 @@
         const tx = r.x + 53;
         text(ctx, m.name.split(' ')[0], tx, r.y + 15, { size: 12 });
         if (m.def.passive.id === 'twohandlift') {
-          // Neris' holds: two pips, top-right; they pulse when they change
+          // Neris' holds: one pip per hold, top-right; they pulse when they change
           const pulse = 1 + 0.5 * Math.max(0, 1 - (t - this.holdT) / 0.3);
-          for (let k = 0; k < 2; k++) {
-            const px = r.x + r.w - 14 - k * 11, py = r.y + 14, h = 4 * (k < s.holds ? pulse : 1);
-            ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 5, py - 5, 10, 10);
+          for (let k = 0; k < s.holdMax; k++) {
+            const px = r.x + r.w - 12 - k * 9, py = r.y + 14, h = 3 * (k < s.holds ? pulse : 1);
+            ctx.fillStyle = '#1a1020'; ctx.fillRect(px - 4, py - 4, 8, 8);
             ctx.fillStyle = k < s.holds ? '#fff1a8' : '#3a2f4a';
             ctx.fillRect(px - h, py - h, h * 2, h * 2);
           }

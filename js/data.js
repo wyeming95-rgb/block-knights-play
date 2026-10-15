@@ -100,7 +100,7 @@
     },
     neris: {
       id: 'neris', name: 'Neris Cade', element: 'light', rarity: 'starter', hp: 42, atk: 6, portrait: 'art/neris.webp',
-      passive: { id: 'twohandlift', name: 'Two-Hand Lift', desc: 'Each line cleared adds a hold (max 2). At 2 holds the next enemy hit is shielded and the party is mended a step; holds reset.' },
+      passive: { id: 'twohandlift', name: 'Two-Hand Lift', desc: 'Each line cleared adds a hold (max 3). At 3 holds the next enemy hit is halved and the party is mended a step; holds reset.' },
       skill: { id: 'setpanel', name: 'Set the Panel', cost: 4, combo: 2, desc: 'Only while the combo is x2 or more: shield the party from the next hit, mend 12% HP and quiet 1 corruption cell.' },
       look: { hat: 'knot', weapon: 'none', shield: 'panel', body: '#e8dcc0', trim: '#8a8a90', skin: '#e8c0a0', hair: '#2a2020' },
     },

@@ -9,7 +9,8 @@
 (() => {
   const COMBO_STEP = 0.25, COMBO_CAP = 3;
   const BASE_GRACE = 1;  // a combo survives this many placements without a clear
-  const HOLD_MAX = 2;    // Neris: "two people, one beam"
+  const HOLD_MAX = 3;    // Neris' Two-Hand Lift: holds needed to brace
+  const BRACE = 0.5;     // fraction of the braced hit that still lands
   const MEND = 0.08;     // Neris' passive mend, fraction of party max HP (party HP is pooled)
 
   class Session {
@@ -42,6 +43,7 @@
       this.dry = 0;
       this.shield = false;
       this.holds = 0;            // Neris' Two-Hand Lift (0..HOLD_MAX)
+      this.holdMax = HOLD_MAX;
       this.freeze = 0;
       this.phase = 'play';       // play | target | won | lost
       this.targeting = null;     // { member } while a targeted skill (Field Seal) waits for a cell
@@ -237,12 +239,14 @@
         return;
       }
       if (this.has('twohandlift') && this.holds >= HOLD_MAX) {
-        // Neris braces: the hit becomes shield, then she mends (party HP is pooled, so
+        // Neris braces: the hit is halved, then she mends (party HP is pooled, so
         // "mend the lowest ally a step" is a small party heal)
+        const cut = Math.round(dmg * BRACE);
         this.holds = 0;
-        this.emit('enemyAttack', { dmg: 0, blocked: true, brace: true, hp: this.party.hp });
+        this.party.hp = Math.max(0, this.party.hp - cut);
+        this.emit('enemyAttack', { dmg: cut, blocked: false, brace: true, hp: this.party.hp });
         this.emit('holds', { holds: 0, max: HOLD_MAX });
-        this.heal(Math.round(this.party.maxHp * MEND));
+        if (this.party.hp > 0) this.heal(Math.round(this.party.maxHp * MEND));
         return;
       }
       this.party.hp = Math.max(0, this.party.hp - dmg);
