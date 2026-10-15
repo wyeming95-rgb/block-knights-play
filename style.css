@@ -71,26 +71,97 @@ html, body {
 .row .btn { flex: 1; }
 .foot { margin-top: auto; }
 
-/* ---- title */
-#screen-title { justify-content: flex-start; padding-top: 40px; }
-.title-heroes { display: flex; gap: 6px; justify-content: center; width: 100%; }
-.title-hero { margin: 0; flex: 0 0 82px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.title-hero .portrait { width: 82px; height: 123px; border: 2px solid var(--line); border-radius: 8px;
-  box-shadow: 0 4px 0 #120c1c; }
-.title-hero .sprite { height: 123px; width: auto; }
-.title-hero.in-team .portrait { border-color: #7fe6ff; }
-.title-hero figcaption { font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-.title-hero.in-team figcaption { color: var(--paper); }
+/* ---- title: full-bleed key art, quiet type, glass buttons. Calm on purpose. */
+#screen-title {
+  justify-content: flex-start; padding: 92px 24px 18px; gap: 16px; overflow: hidden;
+  background: #b9a6d4 url(art/ui/home.webp) 50% 40% / cover no-repeat;
+}
+/* vignette + a soft dark floor so the menu reads over the flower field */
+#screen-title::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 38%, transparent 55%, rgba(26, 16, 44, 0.55) 100%),
+    linear-gradient(to bottom, rgba(26, 16, 44, 0) 45%, rgba(26, 16, 44, 0.5) 100%);
+}
+#screen-title > * { position: relative; }
+.title-motes { position: absolute !important; inset: 0; pointer-events: none; overflow: hidden; }
+.title-motes i {
+  position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%;
+  background: #fff4d6; box-shadow: 0 0 8px 2px rgba(255, 236, 190, 0.7); opacity: 0;
+  animation: mote 14s linear infinite;
+}
+.title-motes i:nth-child(1)  { left: 8%;  animation-delay: 0s;   animation-duration: 15s; }
+.title-motes i:nth-child(2)  { left: 21%; animation-delay: -4s;  animation-duration: 12s; }
+.title-motes i:nth-child(3)  { left: 33%; animation-delay: -9s;  animation-duration: 17s; transform: scale(0.7); }
+.title-motes i:nth-child(4)  { left: 46%; animation-delay: -2s;  animation-duration: 13s; }
+.title-motes i:nth-child(5)  { left: 58%; animation-delay: -11s; animation-duration: 16s; }
+.title-motes i:nth-child(6)  { left: 67%; animation-delay: -6s;  animation-duration: 14s; }
+.title-motes i:nth-child(7)  { left: 76%; animation-delay: -1s;  animation-duration: 18s; }
+.title-motes i:nth-child(8)  { left: 85%; animation-delay: -8s;  animation-duration: 12s; }
+.title-motes i:nth-child(9)  { left: 92%; animation-delay: -13s; animation-duration: 15s; }
+.title-motes i:nth-child(10) { left: 15%; animation-delay: -7s;  animation-duration: 19s; }
+@keyframes mote {
+  0%   { transform: translate(0, 0); opacity: 0; }
+  15%  { opacity: 0.8; }
+  50%  { transform: translate(14px, -420px); }
+  85%  { opacity: 0.5; }
+  100% { transform: translate(-6px, -840px); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-motes { display: none; }
+}
+
+.title-wrap { text-align: center; }
+.title {
+  margin: 0; display: flex; flex-direction: column; align-items: center; line-height: 1;
+  font-family: "Cinzel", "Trajan Pro", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  font-weight: 400; color: #fffaf2;
+  text-shadow: 0 1px 2px rgba(60, 36, 90, 0.45), 0 0 24px rgba(255, 236, 214, 0.55);
+}
+.title .t1 { font-size: 20px; letter-spacing: 12px; padding-left: 12px; text-transform: uppercase; opacity: 0.9; }
+.title .t2 { font-size: 48px; letter-spacing: 6px; padding-left: 6px; text-transform: uppercase; }
+.title-wrap::after {
+  content: ""; display: block; width: 120px; height: 1px; margin: 12px auto 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 250, 242, 0.85), transparent);
+}
+.subtitle { margin-top: 10px; font-size: 11px; letter-spacing: 5px; text-transform: uppercase;
+  color: rgba(255, 250, 242, 0.85); text-shadow: 0 1px 3px rgba(60, 36, 90, 0.5); }
+
+#screen-title .frag-chip { margin-top: auto; background: rgba(36, 24, 60, 0.35); border-color: rgba(255, 255, 255, 0.28);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fffaf2; }
+#screen-title .rune { color: #c9f3ff; }
+.menu { width: 100%; max-width: 270px; display: flex; flex-direction: column; gap: 10px; }
+/* soft glass buttons, title screen only (other screens keep the chunky game buttons) */
+#screen-title .btn {
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; font-weight: 600; letter-spacing: 1px;
+  color: #fffaf2; background: rgba(36, 24, 60, 0.38); border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px; box-shadow: 0 6px 20px rgba(20, 10, 40, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: background 0.2s, transform 0.1s;
+}
+#screen-title .btn:active { transform: scale(0.98); box-shadow: 0 2px 10px rgba(20, 10, 40, 0.25); }
+#screen-title .btn.primary {
+  color: #3a2410; border-color: rgba(255, 244, 214, 0.9);
+  background: linear-gradient(180deg, rgba(255, 238, 190, 0.92), rgba(240, 200, 120, 0.88));
+}
+#screen-title .btn.big { font-size: 22px; padding: 12px; letter-spacing: 3px; }
+#screen-title .btn.big small { letter-spacing: 0.5px; font-family: var(--font); }
+#screen-title .btn.ghost { background: rgba(36, 24, 60, 0.2); box-shadow: none; }
+
+/* small portrait chips along the bottom; current team members ringed */
+.title-heroes { display: flex; gap: 10px; justify-content: center; width: 100%; }
+.title-hero { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.title-hero .portrait, .title-hero .sprite {
+  width: 40px; height: 40px; border-radius: 50%; object-position: 50% 10%;
+  border: 1px solid rgba(255, 255, 255, 0.35); box-shadow: 0 2px 8px rgba(20, 10, 40, 0.35);
+}
+.title-hero .sprite { object-fit: contain; background: rgba(36, 24, 60, 0.5); }
+.title-hero.in-team .portrait, .title-hero.in-team .sprite { border: 2px solid #fff1c8; box-shadow: 0 0 10px rgba(255, 236, 190, 0.6); }
+.title-hero figcaption { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: rgba(255, 250, 242, 0.7); }
+.title-hero.in-team figcaption { color: #fffaf2; }
 /* full-colour portrait art (2:3); cropped into its box, never pixelated */
 .portrait { display: block; flex: none; object-fit: cover; object-position: 50% 12%; background: #16101f; }
-.title-wrap { text-align: center; }
-.title { margin: 0; line-height: 0.9; display: flex; flex-direction: column; }
-.title .t1 { font-size: 30px; letter-spacing: 12px; color: var(--muted); }
-.title .t2 { font-size: 64px; font-weight: 900; letter-spacing: 2px; color: var(--paper);
-  text-shadow: 4px 4px 0 #4a1e60, 8px 8px 0 #1a1020; }
-.subtitle { margin-top: 12px; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: #7fe6ff; }
-.menu { width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
-.note { margin-top: auto; font-size: 11px; color: var(--muted); }
+.note { font-size: 10px; color: rgba(255, 250, 242, 0.65); margin: 0; }
 
 .chip { background: rgba(0, 0, 0, 0.45); border: 1px solid var(--line); border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 700; }
 .chip.small { padding: 4px 10px; }

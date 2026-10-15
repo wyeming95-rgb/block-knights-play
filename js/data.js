@@ -48,8 +48,9 @@
   const SHAPE = {};
   SHAPES.forEach(s => { SHAPE[s.id] = s; });
 
-  // index 0 unused (0 = empty cell on the board)
-  const PIECE_COLORS = [null, '#e2574c', '#3cc6c0', '#5cc06a', '#4a9fe8', '#9b6be0', '#e86bb0'];
+  // index 0 unused (0 = empty cell on the board). Each slot has a rune gem art/ui/rune-N.webp
+  // (red, gold, green, blue, purple, pink); these hexes are the flat fallback + particle tint.
+  const PIECE_COLORS = [null, '#e2574c', '#e8b830', '#5cc06a', '#4a9fe8', '#9b6be0', '#e86bb0'];
 
   // ---- elements: attacker beating defender = x1.5, defender beating attacker = x0.75
   const ELEMENTS = {

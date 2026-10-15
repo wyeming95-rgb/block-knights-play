@@ -28,7 +28,42 @@
     return shadeCache[hex];
   }
 
+  // ---------------------------------------------------------------- painted art
+  // Optional: until an image loads (or if it fails) we fall back to flat blocks and
+  // the drawn backdrop. Built from ../art/ui by tools/build-art.py.
+  function loadImg(src) {
+    if (typeof Image === 'undefined') return null;
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    return img;
+  }
+  const loaded = img => !!img && img.complete && img.naturalWidth > 0;
+  const RUNES = DATA.PIECE_COLORS.map((c, i) => (i ? loadImg(`art/ui/rune-${i}.webp`) : null));
+  const BGS = { forest: loadImg('art/ui/bg-forest.webp'), ruins: loadImg('art/ui/bg-ruins.webp'), snow: loadImg('art/ui/bg-snow.webp') };
+  const LEVEL_BG = { 1: 'forest', 2: 'forest', 3: 'forest', 4: 'ruins', 5: 'snow', 6: 'snow', 7: 'forest', 8: 'ruins', 9: 'ruins', 10: 'ruins' };
+  const bgName = level => LEVEL_BG[level.id] || ['forest', 'snow', 'ruins'][(level.id - 1) % 3];
+
+  function smoothImage(ctx, img, x, y, w, h) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, x, y, w, h);
+    ctx.imageSmoothingEnabled = false;
+  }
+
+  /** One board block; `color` is a DATA.PIECE_COLORS index. Rune gem if loaded, else flat. */
   function block(ctx, x, y, s, color, alpha = 1) {
+    const img = RUNES[color];
+    if (loaded(img)) {
+      ctx.globalAlpha = alpha;
+      smoothImage(ctx, img, x, y, s, s);
+      ctx.globalAlpha = 1;
+      return;
+    }
+    flatBlock(ctx, x, y, s, DATA.PIECE_COLORS[color], alpha);
+  }
+
+  function flatBlock(ctx, x, y, s, color, alpha) {
     const sh = shades(color), b = Math.max(2, Math.round(s * 0.12));
     ctx.globalAlpha = alpha;
     ctx.fillStyle = sh.lo; ctx.fillRect(x, y, s, s);
@@ -379,6 +414,7 @@
       const [sx, sy] = FX.shakeOffset();
       ctx.save();
       ctx.translate(sx, sy);
+      this.drawBattleBg(ctx, s);
       this.drawScene(ctx, s);
       this.drawCards(ctx, s);
       // squash-and-settle around the board centre (visual only; input uses the unscaled grid)
@@ -425,17 +461,54 @@
       ridge(h * 0.82, 26, 6, boss ? '#1e0c28' : '#2a1a2e', 90);
     },
 
+    battleArt(s) {
+      const img = BGS[bgName(s.level)];
+      return loaded(img) ? img : null;
+    },
+
+    /** Painted level background: clear behind the battle, dimmed behind cards/board/tray. */
+    drawBattleBg(ctx, s) {
+      const img = this.battleArt(s);
+      if (!img) return;
+      // horizon roughly on the battle ground line; the tray covers whatever is below
+      const h = 1000, w = (h * img.naturalWidth) / img.naturalHeight;
+      smoothImage(ctx, img, Math.round((W - w) / 2), 236 - h / 2, w, h);
+      if (this.enemy && this.enemy.boss) {
+        ctx.fillStyle = 'rgba(40,8,60,0.35)';
+        ctx.fillRect(-20, 0, W + 40, 290);
+      }
+      // gentle darkening at the top for the enemy HUD, heavy below the scene for the board
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, 'rgba(14,9,22,0.45)');
+      g.addColorStop(110 / H, 'rgba(14,9,22,0.05)');
+      g.addColorStop(230 / H, 'rgba(14,9,22,0.05)');
+      g.addColorStop(290 / H, 'rgba(14,9,22,0.6)');
+      g.addColorStop(380 / H, 'rgba(14,9,22,0.78)');
+      g.addColorStop(1, 'rgba(14,9,22,0.9)');
+      ctx.fillStyle = g;
+      ctx.fillRect(-20, -20, W + 40, H + 40);
+    },
+
     drawScene(ctx, s) {
       const top = 44, groundY = 236, bottom = 290;
       ctx.save();
       ctx.beginPath(); ctx.rect(0, top, W, bottom - top); ctx.clip();
-      ctx.translate(0, top);
-      this.drawBackdrop(ctx, groundY - top, this.enemy && this.enemy.boss);
-      ctx.translate(0, -top);
-      ctx.fillStyle = '#3a2a2a'; ctx.fillRect(0, groundY, W, bottom - groundY);
-      ctx.fillStyle = '#5a4030'; ctx.fillRect(0, groundY, W, 4);
-      ctx.fillStyle = '#2a1e22';
-      for (let x = 6; x < W; x += 23) ctx.fillRect(x, groundY + 10 + (x * 7) % 30, 6, 3);
+      if (this.battleArt(s)) {
+        // painted ground: just a soft floor shade so the sprites sit on something
+        const g = ctx.createLinearGradient(0, groundY - 24, 0, bottom);
+        g.addColorStop(0, 'rgba(14,9,22,0)');
+        g.addColorStop(1, 'rgba(14,9,22,0.55)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, groundY - 24, W, bottom - groundY + 24);
+      } else {
+        ctx.translate(0, top);
+        this.drawBackdrop(ctx, groundY - top, this.enemy && this.enemy.boss);
+        ctx.translate(0, -top);
+        ctx.fillStyle = '#3a2a2a'; ctx.fillRect(0, groundY, W, bottom - groundY);
+        ctx.fillStyle = '#5a4030'; ctx.fillRect(0, groundY, W, 4);
+        ctx.fillStyle = '#2a1e22';
+        for (let x = 6; x < W; x += 23) ctx.fillRect(x, groundY + 10 + (x * 7) % 30, 6, 3);
+      }
 
       const t = FX.t, n = s.members.length;
       // party (back row first)
@@ -632,7 +705,7 @@
       const d = this.drag;
       if (d && d.valid) {
         const piece = s.hand[d.index];
-        ghost = { cells: new Set(DATA.SHAPE[piece.shape].cells.map(([dr, dc]) => (d.r + dr) * 8 + d.c + dc)), color: DATA.PIECE_COLORS[piece.color] };
+        ghost = { cells: new Set(DATA.SHAPE[piece.shape].cells.map(([dr, dc]) => (d.r + dr) * 8 + d.c + dc)), color: piece.color };
         hl = { rows: new Set(d.clears.rows), cols: new Set(d.clears.cols) };
       }
 
@@ -644,7 +717,7 @@
           if (b.corrupt[i]) {
             this.drawCorrupt(ctx, x, y, C, t, i, fx);
           } else if (b.cells[i]) {
-            let color = DATA.PIECE_COLORS[b.cells[i]];
+            let color = b.cells[i];
             if (lit) color = ghost.color;
             let sc = 1;
             if (fx && fx.kind === 'place') {
@@ -719,11 +792,11 @@
     // ---------------------------------------------------------- tray + drag
     drawPieceAt(ctx, piece, ox, oy, cell, alpha = 1) {
       const sh = DATA.SHAPE[piece.shape];
-      for (const [dr, dc] of sh.cells) block(ctx, Math.round(ox + dc * cell), Math.round(oy + dr * cell), cell, DATA.PIECE_COLORS[piece.color], alpha);
+      for (const [dr, dc] of sh.cells) block(ctx, Math.round(ox + dc * cell), Math.round(oy + dr * cell), cell, piece.color, alpha);
     },
 
     drawTray(ctx, s) {
-      ctx.fillStyle = '#1e1529';
+      ctx.fillStyle = 'rgba(24,17,34,0.88)';
       ctx.fillRect(0, TRAY.y, W, H - TRAY.y);
       ctx.fillStyle = '#2a2140';
       ctx.fillRect(0, TRAY.y, W, 3);
@@ -753,7 +826,7 @@
 
     // ---------------------------------------------------------- HUD
     drawHUD(ctx, s) {
-      ctx.fillStyle = '#120d1c';
+      ctx.fillStyle = 'rgba(18,13,28,0.82)';
       ctx.fillRect(0, 0, W, 44);
       const p = this.pauseRect();
       ctx.fillStyle = '#2a2140';
@@ -772,15 +845,23 @@
     // ---------------------------------------------------------- menus backdrop
     drawIdle(ctx, team) {
       const gy = Math.round(H * 0.7);
-      this.drawBackdrop(ctx, gy, false);
-      ctx.fillStyle = '#3a2a2a'; ctx.fillRect(0, gy, W, H);
-      ctx.fillStyle = '#5a4030'; ctx.fillRect(0, gy, W, 5);
+      const art = BGS.forest;
+      if (loaded(art)) {
+        const w = (H * art.naturalWidth) / art.naturalHeight;
+        smoothImage(ctx, art, Math.round((W - w) / 2), 0, w, H);
+        ctx.fillStyle = 'rgba(14,9,22,0.4)';
+        ctx.fillRect(0, 0, W, H);
+      } else {
+        this.drawBackdrop(ctx, gy, false);
+        ctx.fillStyle = '#3a2a2a'; ctx.fillRect(0, gy, W, H);
+        ctx.fillStyle = '#5a4030'; ctx.fillRect(0, gy, W, 5);
+      }
       const t = FX.t;
       // drifting rune blocks
       for (let k = 0; k < 9; k++) {
         const x = (k * 53 + t * (10 + k * 3)) % (W + 60) - 30;
         const y = gy + 30 + ((k * 97) % 190) + Math.sin(t + k) * 6;
-        block(ctx, Math.round(x), Math.round(y), 22, DATA.PIECE_COLORS[1 + (k % 6)], 0.5);
+        block(ctx, Math.round(x), Math.round(y), 22, 1 + (k % 6), 0.5);
       }
       (team || []).forEach((id, i) => {
         const x = W / 2 + (i - (team.length - 1) / 2) * 70;
